@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RH Platform – Absences par Employé</title>
+  <?!= include('isims-styles') ?>
+</head>
+
+<body>
+  <div id="toast-container"></div>
+  <div class="loader-overlay" id="loader">
+    <div class="spinner"></div>
+    <p>Chargement...</p>
+  </div>
+
+  <!-- Header -->
+  <header class="isims-header">
+    <div class="header-inner">
+      <a class="header-logo" href="?page=landing">
+        <div class="logo-mark">RH</div>
+        <div class="logo-text">
+          <h1>RH Platform</h1><small>ADMINISTRATION</small>
+        </div>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="header-nav">
+        <a onclick="navigate('admin-dashboard')">📊 Dashboard</a>
+        <a onclick="navigate('employees')">👥 Employés</a>
+        <a onclick="navigate('missions')">🎯 Missions</a>
+        <a onclick="navigate('absences')">📅 Absences</a>
+        <a onclick="navigate('recommendation')">🤖 IA</a>
+      </nav>
+      <div class="header-user" id="header-user"></div>
+      <button class="btn btn-light btn-sm" style="margin-left:8px" onclick="doLogout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <!-- Sub-header -->
+  <div class="sub-header">
+    <div class="sub-header-inner">
+      <span onclick="navigate('absences')" style="cursor:pointer">📅 Absences</span>
+      <span class="sep">›</span>
+      <span class="current">Par Employé</span>
+    </div>
+  </div>
+
+  <div class="page-layout">
+    <!-- Sidebar -->
+    <aside class="isims-sidebar">
+      <div class="sidebar-section-title">Navigation</div>
+      <div id="isims-sidebar-nav"></div>
+      <div class="sidebar-section-title">Filtres</div>
+      <div style="padding:0 8px">
+        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px">Statut</label>
+        <select class="input" id="filter-statut" onchange="applyFilters()" style="font-size:12px;padding:6px 10px">
+          <option value="">Tous les statuts</option>
+          <option value="En attente">⏳ En attente</option>
+          <option value="Approuvée">✅ Approuvée</option>
+          <option value="Refusée">❌ Refusée</option>
+        </select>
+        <label style="font-size:11px;color:var(--text-muted);display:block;margin-top:12px;margin-bottom:4px">Département</label>
+        <select class="input" id="filter-dept" onchange="applyFilters()" style="font-size:12px;padding:6px 10px">
+          <option value="">Tous les départements</option>
+        </select>
+        <label style="font-size:11px;color:var(--text-muted);display:block;margin-top:12px;margin-bottom:4px">Type</label>
+        <select class="input" id="filter-type" onchange="applyFilters()" style="font-size:12px;padding:6px 10px">
+          <option value="">Tous les types</option>
+          <option value="Congé annuel">Congé annuel</option>
+          <option value="Maladie">Maladie</option>
+          <option value="Congé maternité">Congé maternité</option>
+          <option value="Congé paternité">Congé paternité</option>
+          <option value="Formation">Formation</option>
+          <option value="Sans solde">Sans solde</option>
+          <option value="Autre">Autre</option>
+        </select>
+        <button class="btn btn-outline btn-sm" style="margin-top:14px;width:100%" onclick="clearFilters()">🔄 Réinitialiser</button>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <div class="page-content">
+
+      <!-- Page header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
+        <div>
+          <div class="page-title">👤 Absences par Employé</div>
+          <div class="page-subtitle">Fiche individuelle d'absence pour chaque employé</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div class="search-wrap">
+            <input type="text" class="input" id="search-input" placeholder="Rechercher un employé..."
+              oninput="applyFilters()" style="width:230px">
+          </div>
+          <button class="btn btn-primary" onclick="navigate('absences')">📋 Vue globale</button>
+          <button class="btn btn-outline" onclick="loadAll()">🔄 Actualiser</button>
+        </div>
+      </div>
+
+      <!-- Stats globales -->
+      <div class="stats-row" style="margin-bottom:24px">
+        <div class="stat-card sc-blue">
+          <div class="sc-icon">👥</div>
+          <div class="sc-label">Employés avec absences</div>
+          <div class="sc-value" id="s-emps">–</div>
+        </div>
+        <div class="stat-card sc-orange">
+          <div class="sc-icon">⏳</div>
+          <div class="sc-label">Total En attente</div>
+          <div class="sc-value" id="s-pend">–</div>
+        </div>
+        <div class="stat-card sc-green">
+          <div class="sc-icon">✅</div>
+          <div class="sc-label">Total Approuvées</div>
+          <div class="sc-value" id="s-app">–</div>
+        </div>
+        <div class="stat-card sc-red">
+          <div class="sc-icon">❌</div>
+          <div class="sc-label">Total Refusées</div>
+          <div class="sc-value" id="s-ref">–</div>
+        </div>
+      </div>
+
+      <!-- Grille des fiches employés -->
+      <div id="employees-grid" style="display:flex;flex-direction:column;gap:20px"></div>
+
+      <!-- État vide -->
+      <div id="empty-state" style="display:none">
+        <div class="empty-state">
+          <div class="icon">📅</div>
+          <h4>Aucun résultat</h4>
+          <p>Aucune absence ne correspond aux filtres sélectionnés.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal Refus -->
+  <div class="modal-overlay" id="modal-refus">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-header">
+        <h3>❌ Motif de refus</h3>
+        <button class="modal-close" onclick="closeModal('modal-refus')">✕</button>
+      </div>
+      <div style="padding:4px 0 16px">
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:14px">Ce motif sera envoyé à l'employé par notification.</p>
+        <div class="form-group">
+          <label>Motif de refus *</label>
+          <textarea class="input" id="refus-motif" rows="4"
+            placeholder="Ex : Période de forte activité, chevauchement avec d'autres congés..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" onclick="closeModal('modal-refus')">Annuler</button>
+        <button class="btn btn-danger" onclick="submitRefus()">❌ Confirmer le refus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Détail absence -->
+  <div class="modal-overlay" id="modal-detail">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <h3 id="detail-title">📄 Détail de l'absence</h3>
+        <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
+      </div>
+      <div id="detail-body" style="padding:8px 0 16px"></div>
+      <div class="modal-footer">
+        <button class="btn btn-light" onclick="closeModal('modal-detail')">Fermer</button>
+        <button class="btn btn-outline" id="detail-print-btn">🖨️ Imprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <?!= include('isims-scripts') ?>
+  <script>
+    var session = requireAuth('admin');
+    if (!session) throw new Error('Not authenticated');
+    buildIsimsNav('admin-absences-employee', 'admin');
+
+    var allAbsences = [];
+    var allEmployees = [];
+    var filteredGroups = [];
+    var _refusId = null;
+
+    /* ── Chargement ── */
+    function loadAll() {
+      showLoader(true);
+      callServer('getEmployees', [], function (err1, emps) {
+        allEmployees = emps || [];
+        // Remplir filtre département
+        var depts = [...new Set(allEmployees.map(function (e) { return e['Département'] || ''; }).filter(Boolean))].sort();
+        var deptSel = document.getElementById('filter-dept');
+        depts.forEach(function (d) {
+          if (!deptSel.querySelector('option[value="' + d + '"]')) {
+            var o = document.createElement('option');
+            o.value = d; o.textContent = d;
+            deptSel.appendChild(o);
+          }
+        });
+
+        callServer('getAbsences', [], function (err2, abs) {
+          showLoader(false);
+          allAbsences = abs || [];
+          // Stats globales
+          document.getElementById('s-pend').textContent = allAbsences.filter(function (a) { return a['Statut'] === 'En attente'; }).length;
+          document.getElementById('s-app').textContent = allAbsences.filter(function (a) { return a['Statut'] === 'Approuvée'; }).length;
+          document.getElementById('s-ref').textContent = allAbsences.filter(function (a) { return a['Statut'] === 'Refusée'; }).length;
+          applyFilters();
+        });
+      });
+    }
+
+    /* ── Filtres ── */
+    function applyFilters() {
+      var q = (document.getElementById('search-input').value || '').toLowerCase().trim();
+      var statut = document.getElementById('filter-statut').value;
+      var dept = document.getElementById('filter-dept').value;
+      var type = document.getElementById('filter-type').value;
+
+      // Filtrer les absences
+      var filtered = allAbsences.filter(function (a) {
+        if (statut && a['Statut'] !== statut) return false;
+        if (type && a['Type'] !== type) return false;
+        return true;
+      });
+
+      // Grouper par employé
+      var groups = {};
+      filtered.forEach(function (a) {
+        var empId = a['Employé ID'];
+        if (!groups[empId]) {
+          var emp = allEmployees.find(function (e) { return e['ID'] === empId; }) || null;
+          groups[empId] = { emp: emp, absences: [], empId: empId };
+        }
+        groups[empId].absences.push(a);
+      });
+
+      // Filtrer par département et recherche (sur l'employé)
+      filteredGroups = Object.values(groups).filter(function (g) {
+        var emp = g.emp;
+        if (!emp) return true;
+        if (dept && emp['Département'] !== dept) return false;
+        if (q) {
+          var hay = ((emp['Nom'] || '') + ' ' + (emp['Prénom'] || '') + ' ' + (emp['CIN'] || '') + ' ' + (emp['Poste'] || '')).toLowerCase();
+          if (hay.indexOf(q) === -1) return false;
+        }
+        return true;
+      });
+
+      // Trier : d'abord ceux avec des absences En attente
+      filteredGroups.sort(function (a, b) {
+        var aPend = a.absences.filter(function (x) { return x['Statut'] === 'En attente'; }).length;
+        var bPend = b.absences.filter(function (x) { return x['Statut'] === 'En attente'; }).length;
+        if (bPend !== aPend) return bPend - aPend;
+        return (a.emp ? (a.emp['Nom'] || '') : '').localeCompare(b.emp ? (b.emp['Nom'] || '') : '');
+      });
+
+      document.getElementById('s-emps').textContent = filteredGroups.length;
+      renderGrid(filteredGroups);
+    }
+
+    function clearFilters() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('filter-statut').value = '';
+      document.getElementById('filter-dept').value = '';
+      document.getElementById('filter-type').value = '';
+      applyFilters();
+    }
+
+    /* ── Rendu des fiches ── */
+    function renderGrid(groups) {
+      var grid = document.getElementById('employees-grid');
+      var empty = document.getElementById('empty-state');
+      if (!groups.length) {
+        grid.innerHTML = '';
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+      grid.innerHTML = groups.map(function (g) { return renderEmployeeCard(g); }).join('');
+    }
+
+    function renderEmployeeCard(g) {
+      var emp = g.emp;
+      var absences = g.absences;
+      var nom = emp ? ((emp['Nom'] || '') + ' ' + (emp['Prénom'] || '')) : ('Employé #' + g.empId);
+      var poste = emp ? (emp['Poste'] || '–') : '–';
+      var dept = emp ? (emp['Département'] || '–') : '–';
+      var cin = emp ? (emp['CIN'] || '–') : '–';
+      var initials = emp ? ((emp['Nom'] || '?')[0] + ((emp['Prénom'] || '')[0] || '')).toUpperCase() : '?';
+      var statut = emp ? (emp['Statut'] || 'Actif') : 'Actif';
+
+      var pend = absences.filter(function (a) { return a['Statut'] === 'En attente'; }).length;
+      var appr = absences.filter(function (a) { return a['Statut'] === 'Approuvée'; }).length;
+      var refu = absences.filter(function (a) { return a['Statut'] === 'Refusée'; }).length;
+      var totalDays = absences.reduce(function (sum, a) { return sum + (parseInt(a['Durée (jours)']) || 0); }, 0);
+
+      var hasPending = pend > 0;
+      var borderColor = hasPending ? 'var(--orange,#f59e0b)' : 'var(--grey-200,#e5e7eb)';
+
+      var rows = absences.map(function (a) {
+        var safeA = encodeURIComponent(JSON.stringify(a));
+        var actions = '';
+        if (a['JustificatifUrl']) {
+          actions += '<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openJustif(\'' + esc(a['JustificatifUrl']) + '\')" title="Justificatif">📄</button> ';
+        }
+        actions += '<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();showDetail(decodeAbs(\'' + safeA + '\'))" title="Détail">👁️</button> ';
+        actions += '<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();printAbsence(decodeAbs(\'' + safeA + '\'))" title="Imprimer">🖨️</button> ';
+        if (a['Statut'] === 'En attente') {
+          actions += '<button class="btn btn-success btn-sm" onclick="event.stopPropagation();changeStatus(\'' + esc(a['ID']) + '\',\'Approuvée\')" title="Approuver">✅</button> ';
+          actions += '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();openRefusModal(\'' + esc(a['ID']) + '\')" title="Refuser">❌</button>';
+        }
+        return '<tr>' +
+          '<td><span class="badge badge-grey">' + esc(a['Type']) + '</span></td>' +
+          '<td><small>' + fmtDate(a['Date Début']) + ' → ' + fmtDate(a['Date Fin']) + '</small></td>' +
+          '<td style="text-align:center"><strong>' + esc(a['Durée (jours)']) + '</strong> j</td>' +
+          '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-light)">' + esc(a['Motif'] || '–') + '</td>' +
+          '<td>' + statusBadge(a['Statut']) + '</td>' +
+          '<td style="white-space:nowrap">' + actions + '</td>' +
+          '</tr>';
+      }).join('');
+
+      return '<div class="card" style="border-left:4px solid ' + borderColor + ';margin-bottom:0">' +
+        /* En-tête employé */
+        '<div style="padding:20px 24px 16px;display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--grey-100)">' +
+          '<div style="width:54px;height:54px;border-radius:50%;background:var(--blue-ultra,#eff6ff);border:2px solid var(--blue-light,#93c5fd);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;font-family:\'Poppins\',sans-serif;color:var(--blue-main,#2563eb);flex-shrink:0">' + initials + '</div>' +
+          '<div style="flex:1">' +
+            '<div style="font-size:16px;font-weight:700;color:var(--grey-900,#111827)">' + esc(nom) + '</div>' +
+            '<div style="font-size:12px;color:var(--text-light);margin-top:2px">' + esc(poste) + ' · ' + esc(dept) + ' · CIN: ' + esc(cin) + '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+            (hasPending ? '<span style="background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700">⏳ ' + pend + ' en attente</span>' : '') +
+            '<span style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600">✅ ' + appr + ' approuvée(s)</span>' +
+            (refu ? '<span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600">❌ ' + refu + ' refusée(s)</span>' : '') +
+            '<span style="background:var(--blue-ultra,#eff6ff);color:var(--blue-dark,#1e40af);border:1px solid var(--blue-pale,#bfdbfe);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600">📅 ' + totalDays + ' j total</span>' +
+            '<button class="btn btn-primary btn-sm" onclick="navigate(\'absences\')">➕ Nouvelle absence</button>' +
+          '</div>' +
+        '</div>' +
+        /* Tableau des absences */
+        '<div style="padding:0 24px 20px">' +
+          '<div class="table-wrapper" style="padding:0;margin-top:16px">' +
+            '<table>' +
+              '<thead><tr>' +
+                '<th>Type</th>' +
+                '<th>Dates</th>' +
+                '<th style="text-align:center">Durée</th>' +
+                '<th>Motif</th>' +
+                '<th>Statut</th>' +
+                '<th>Actions</th>' +
+              '</tr></thead>' +
+              '<tbody>' + rows + '</tbody>' +
+            '</table>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    /* ── Actions ── */
+    function changeStatus(id, statut, motif) {
+      callServer('updateAbsenceStatus', [id, statut, motif || ''], function (err, res) {
+        if (res && res.success) { showToast('Statut mis à jour', 'success'); loadAll(); }
+        else showToast('Erreur', 'error');
+      });
+    }
+
+    function openRefusModal(id) {
+      _refusId = id;
+      document.getElementById('refus-motif').value = '';
+      openModal('modal-refus');
+    }
+
+    function submitRefus() {
+      var motif = document.getElementById('refus-motif').value.trim();
+      if (!motif) { showToast('Veuillez saisir un motif de refus', 'error'); return; }
+      closeModal('modal-refus');
+      changeStatus(_refusId, 'Refusée', motif);
+    }
+
+    function openJustif(url) {
+      if (!url) return;
+      window.open(url, '_blank');
+    }
+
+    function decodeAbs(encoded) { return JSON.parse(decodeURIComponent(encoded)); }
+
+    /* ── Détail ── */
+    function showDetail(a) {
+      var emp = allEmployees.find(function (e) { return e['ID'] === a['Employé ID']; });
+      var nom = emp ? ((emp['Nom'] || '') + ' ' + (emp['Prénom'] || '')) : (a['Employé Nom'] || '–');
+      document.getElementById('detail-title').textContent = '📄 Absence – ' + nom;
+      document.getElementById('detail-body').innerHTML =
+        '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+        row2('Employé', esc(nom)) +
+        row2('CIN', esc(emp ? (emp['CIN'] || '–') : '–')) +
+        row2('Poste', esc(emp ? (emp['Poste'] || '–') : '–')) +
+        row2('Département', esc(emp ? (emp['Département'] || '–') : '–')) +
+        row2('Type d\'absence', '<span class="badge badge-grey">' + esc(a['Type']) + '</span>') +
+        row2('Date début', fmtDate(a['Date Début'])) +
+        row2('Date fin', fmtDate(a['Date Fin'])) +
+        row2('Durée', '<strong>' + esc(a['Durée (jours)']) + '</strong> jour(s)') +
+        row2('Motif', esc(a['Motif'] || '–')) +
+        row2('Statut', statusBadge(a['Statut'])) +
+        row2('Justificatif', a['JustificatifUrl'] ? '<a href="' + a['JustificatifUrl'] + '" target="_blank">📄 Voir le document</a>' : '–') +
+        '</table>';
+      // Bouton imprimer
+      document.getElementById('detail-print-btn').onclick = function () { printAbsence(a); };
+      openModal('modal-detail');
+    }
+
+    function row2(label, value) {
+      return '<tr style="border-bottom:1px solid var(--grey-100)">' +
+        '<td style="padding:9px 12px;color:var(--text-muted);font-weight:600;width:38%;background:var(--grey-50)">' + label + '</td>' +
+        '<td style="padding:9px 12px">' + value + '</td>' +
+        '</tr>';
+    }
+
+    /* ── Impression ── */
+    function printAbsence(a) {
+      var emp = allEmployees.find(function (e) { return e['ID'] === a['Employé ID']; });
+      callServer('getPrintTemplate', ['tpl-absence', {
+        id: a['ID'] || '–',
+        nom: emp ? emp['Nom'] : (a['Employé Nom'] || '–'),
+        prenom: emp ? emp['Prénom'] : '',
+        cin: emp ? emp['CIN'] : '–',
+        poste: emp ? emp['Poste'] : '–',
+        departement: emp ? emp['Département'] : '–',
+        type: a['Type'] || '',
+        debut: a['Date Début'] || '',
+        fin: a['Date Fin'] || '',
+        duree: a['Durée (jours)'] || '–',
+        motif: a['Motif'] || '',
+        statut: a['Statut'] || 'En attente',
+        date_today: new Date().toLocaleDateString('fr-FR')
+      }], function (err, html) {
+        if (html) {
+          var win = window.open('', '_blank');
+          win.document.write(html);
+          win.document.close();
+          setTimeout(function () { win.print(); }, 600);
+        } else {
+          showToast('Erreur génération du template', 'error');
+        }
+      });
+    }
+
+    /* ── Init ── */
+    loadAll();
+  </script>
+</body>
+
+</html>

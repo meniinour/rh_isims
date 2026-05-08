@@ -20,7 +20,7 @@
       <a class="header-logo" href="?page=landing">
         <div class="logo-mark">RH</div>
         <div class="logo-text">
-          <h1>RH Platform</h1><small>ADMINISTRATION</small>
+          <h1>RH Platform</h1><small id="header-role">CHARGEMENT...</small>
         </div>
       </a>
       <div class="header-spacer"></div>
@@ -37,7 +37,7 @@
 
   <div class="sub-header">
     <div class="sub-header-inner">
-      <span>Admin</span><span class="sep">›</span><span class="current">Absences</span>
+      <span id="sub-role">Admin</span><span class="sep">›</span><span class="current">Absences</span>
     </div>
   </div>
 
@@ -45,6 +45,11 @@
     <aside class="isims-sidebar">
       <div class="sidebar-section-title">Navigation</div>
       <div id="isims-sidebar-nav"></div>
+      <div class="sidebar-section-title">Compte</div>
+      <button class="sidebar-item" onclick="openModal('modal-pwd')"><span class="s-icon">🔑</span><span>Changer mot de
+          passe</span></button>
+      <button class="sidebar-item" style="color:var(--red)" onclick="doLogout()"><span
+          class="s-icon">🚪</span><span>Déconnexion</span></button>
     </aside>
 
     <div class="page-content">
@@ -87,6 +92,7 @@
           <div class="sc-value" id="s-ref">–</div>
         </div>
       </div>
+
       <div class="card">
         <div class="card-header">
           <div>
@@ -113,6 +119,7 @@
           </table>
         </div>
       </div>
+
       <!-- Analyse rapide -->
       <div class="card" style="margin-bottom:20px">
         <div class="card-header">
@@ -129,7 +136,6 @@
           </div>
         </div>
       </div>
-
 
     </div>
   </div>
@@ -254,8 +260,13 @@
 
   <?!= include('isims-scripts') ?>
   <script>
-    var session = requireAuth('admin') || requireAuth('employee');
+    var session = requireAuth();
     if (!session) throw new Error('Not authenticated');
+    
+    // UI dynamic role
+    document.getElementById('header-role').textContent = session.role === 'admin' ? 'ADMINISTRATION' : 'ESPACE EMPLOYÉ';
+    document.getElementById('sub-role').textContent = session.role === 'admin' ? 'Admin' : 'Employé';
+    
     buildIsimsNav('absences', session.role);
 
     var allAbsences = [], allEmployees = [];
@@ -266,17 +277,23 @@
     function loadAbsences() {
       callServer('getAbsences', [], function (err, data) {
         if (err) return;
-        allAbsences = data || [];
+        var all = data || [];
+        // Employé : afficher uniquement ses propres absences
+        if (session.role === 'employee' && _myEmp) {
+          allAbsences = all.filter(function (a) { return a['Employé ID'] === _myEmp['ID']; });
+        } else {
+          allAbsences = all;
+        }
         renderTable(allAbsences);
         document.getElementById('s-total').textContent = allAbsences.length;
         document.getElementById('s-pend').textContent = allAbsences.filter(function (a) { return a['Statut'] === 'En attente'; }).length;
         document.getElementById('s-app').textContent = allAbsences.filter(function (a) { return a['Statut'] === 'Approuvée'; }).length;
         document.getElementById('s-ref').textContent = allAbsences.filter(function (a) { return a['Statut'] === 'Refusée'; }).length;
       });
+      // Recharger les employés pour garder _myEmp à jour
       callServer('getEmployees', [], function (err, data) {
         if (err) return;
         allEmployees = data || [];
-        // Employé connecté → auto-remplir ses propres infos, pas de recherche
         if (session.role === 'employee') {
           var myCin = String(session.cin || '');
           var me = allEmployees.find(function (e) { return String(e['CIN']).trim() === myCin; });
@@ -487,6 +504,10 @@
         var isPending = a['Statut'] === 'En attente';
 
         var actions = '';
+        // 📄 Justificatif (si existe)
+        if (a['JustificatifUrl']) {
+          actions += '<button class="btn btn-outline btn-sm" onclick="openJustif(\'' + esc(a['JustificatifUrl']) + '\')" title="Voir justificatif">📄</button> ';
+        }
         // 🖨️ Imprimer (tous)
         actions += '<button class="btn btn-outline btn-sm" onclick="printAbsence(decodeAbsence(\'' + safeA + '\'))" title="Imprimer formulaire">🖨️</button> ';
 
@@ -494,15 +515,15 @@
           // Admin : Approuver / Refuser si En attente
           if (isPending) {
             actions += '<button class="btn btn-success btn-sm" onclick="changeStatus(\'' + esc(a['ID']) + '\',\'Approuvée\')" title="Approuver">✅</button> ';
-            actions += '<button class="btn btn-danger btn-sm" onclick="changeStatus(\'' + esc(a['ID']) + '\',\'Refusée\')" title="Refuser">❌</button>';
+            actions += '<button class="btn btn-danger btn-sm" onclick="openRefusModal(\'' + esc(a['ID']) + '\')" title="Refuser">❌</button>';
           }
         } else if (isEmployee) {
           // Employé : Modifier si En attente
           if (isPending) {
             actions += '<button class="btn btn-outline btn-sm" onclick="openEditAbsence(decodeAbsence(\'' + safeA + '\'))" title="Modifier">✏️</button> ';
+            actions += '<button class="btn btn-danger btn-sm" onclick="deleteAbsence(\'' + esc(a['ID']) + '\')" title="Supprimer">🗑️</button>';
+
           }
-          // Employé : Supprimer toujours
-          actions += '<button class="btn btn-danger btn-sm" onclick="deleteAbsence(\'' + esc(a['ID']) + '\')" title="Supprimer">🗑️</button>';
         }
 
         return '<tr>' +
@@ -511,7 +532,7 @@
           '<td><small>' + fmtDate(a['Date Début']) + ' → ' + fmtDate(a['Date Fin']) + '</small></td>' +
           '<td><strong>' + esc(a['Durée (jours)']) + '</strong> j</td>' +
           '<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(a['Motif'] || '–') + '</td>' +
-          '<td style="text-align:center">' + justif + '</td>' +
+          '<td style="text-align:center">' + (a['JustificatifUrl'] ? '<a href="' + a['JustificatifUrl'] + '" target="_blank" onclick="event.stopPropagation()" title="Ouvrir justificatif" style="font-size:18px;text-decoration:none">📄</a>' : '<span style="opacity:0.3">–</span>') + '</td>' +
           '<td>' + statusBadge(a['Statut']) + '</td>' +
           '<td style="white-space:nowrap">' + actions + '</td></tr>';
       }).join('');
@@ -564,24 +585,60 @@
       var q = document.getElementById('search-input').value.toLowerCase();
       renderTable(allAbsences.filter(function (a) { return (a['Employé Nom'] + a['Type'] + a['Statut']).toLowerCase().indexOf(q) !== -1; }));
     }
-function printAbsence(a) {
-  var emp = allEmployees.find(function(e) { return e['ID'] === a['Employé ID']; });
-  var params = new URLSearchParams({
-    id: a['ID'] || '', nom: a['Employé Nom'] || '',
-    cin: emp ? emp['CIN'] : '', poste: emp ? emp['Poste'] : '',
-    dept: emp ? emp['Département'] : '', type: a['Type'] || '',
-    dateDebut: a['Date Début'] || '', dateFin: a['Date Fin'] || '',
-    duree: a['Durée (jours)'] || '', motif: a['Motif'] || '',
-    statut: a['Statut'] || '', dateDepot: new Date().toISOString()
-  });
-  window.open('template-absence-isims.html?' + params.toString(), '_blank');
-}
 
-    function changeStatus(id, statut) {
-      callServer('updateAbsenceStatus', [id, statut], function (err, res) {
+    function printAbsence(a) {
+      var emp = allEmployees.find(function (e) { return e['ID'] === a['Employé ID']; });
+      callServer('getPrintTemplate', ['tpl-absence', {
+        id: a['ID'] || '–',
+        nom: emp ? emp['Nom'] : (a['Employé Nom'] || '–'),
+        prenom: emp ? emp['Prénom'] : '',
+        cin: emp ? emp['CIN'] : '–',
+        poste: emp ? emp['Poste'] : '–',
+        departement: emp ? emp['Département'] : '–',
+        type: a['Type'] || '',
+        debut: a['Date Début'] || '',
+        fin: a['Date Fin'] || '',
+        duree: a['Durée (jours)'] || '–',
+        motif: a['Motif'] || '',
+        statut: a['Statut'] || 'En attente',
+        date_today: new Date().toLocaleDateString('fr-FR')
+      }], function (err, html) {
+        if (html) {
+          var win = window.open('', '_blank');
+          win.document.write(html);
+          win.document.close();
+          setTimeout(function () { win.print(); }, 600);
+        } else {
+          showToast('Erreur génération du template', 'error');
+        }
+      });
+    }
+
+    function changeStatus(id, statut, motif) {
+      callServer('updateAbsenceStatus', [id, statut, motif || ''], function (err, res) {
         if (res && res.success) { showToast('Statut mis à jour', 'success'); loadAbsences(); }
         else showToast('Erreur', 'error');
       });
+    }
+
+    /* ── Modal Refus ── */
+    var _refusId = null;
+    function openRefusModal(id) {
+      _refusId = id;
+      document.getElementById('refus-motif').value = '';
+      openModal('modal-refus');
+    }
+    function submitRefus() {
+      var motif = document.getElementById('refus-motif').value.trim();
+      if (!motif) { showToast('Veuillez saisir un motif de refus', 'error'); return; }
+      closeModal('modal-refus');
+      changeStatus(_refusId, 'Refusée', motif);
+    }
+
+    /* ── Ouvrir justificatif ── */
+    function openJustif(url) {
+      if (!url) return;
+      window.open(url, '_blank');
     }
 
     function loadAnalysis() {
@@ -613,8 +670,74 @@ function printAbsence(a) {
       resetModal();
     });
 
-    loadAbsences();
+    // Charger employés en premier pour avoir _myEmp avant de filtrer les absences
+    callServer('getEmployees', [], function (err, data) {
+      if (!err) {
+        allEmployees = data || [];
+        if (session.role === 'employee') {
+          var myCin = String(session.cin || '');
+          var me = allEmployees.find(function (e) { return String(e['CIN']).trim() === myCin; });
+          if (me) { _myEmp = me; }
+        }
+      }
+      loadAbsences();
+    });
+
+    function changePwdAbs() {
+      var old = document.getElementById('old-pwd').value;
+      var nw = document.getElementById('new-pwd').value;
+      var cf = document.getElementById('conf-pwd').value;
+      if (!old || !nw) { showToast('Remplissez tous les champs', 'error'); return; }
+      if (nw !== cf) { showToast('Les mots de passe ne correspondent pas', 'error'); return; }
+      if (nw.length < 6) { showToast('Le mot de passe doit faire au moins 6 caractères', 'error'); return; }
+      callServer('changePassword', [session.cin, old, nw], function (err, res) {
+        if (res && res.success) { showToast('Mot de passe modifié ✅', 'success'); closeModal('modal-pwd'); }
+        else showToast((res && res.message) || 'Erreur', 'error');
+      });
+    }
   </script>
+  <!-- Modal Refus -->
+  <div class="modal-overlay" id="modal-refus">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-header">
+        <h3>❌ Motif de refus</h3>
+        <button class="modal-close" onclick="closeModal('modal-refus')">✕</button>
+      </div>
+      <div style="padding:4px 0 16px">
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:14px">Ce motif sera envoyé à l'employé par
+          notification.</p>
+        <div class="form-group">
+          <label>Motif de refus *</label>
+          <textarea class="input" id="refus-motif" rows="4"
+            placeholder="Ex : Période de forte activité, chevauchement avec d'autres congés..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" onclick="closeModal('modal-refus')">Annuler</button>
+        <button class="btn btn-danger" onclick="submitRefus()">❌ Confirmer le refus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Changer mot de passe -->
+  <div class="modal-overlay" id="modal-pwd">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-header">
+        <h3>🔑 Changer le mot de passe</h3><button class="modal-close" onclick="closeModal('modal-pwd')">✕</button>
+      </div>
+      <div class="form-group" style="margin-bottom:14px"><label>Ancien mot de passe</label><input class="input"
+          type="password" id="old-pwd"></div>
+      <div class="form-group" style="margin-bottom:14px"><label>Nouveau mot de passe</label><input class="input"
+          type="password" id="new-pwd"></div>
+      <div class="form-group"><label>Confirmer nouveau mot de passe</label><input class="input" type="password"
+          id="conf-pwd"></div>
+      <div class="modal-footer">
+        <button class="btn btn-light" onclick="closeModal('modal-pwd')">Annuler</button>
+        <button class="btn btn-primary" onclick="changePwdAbs()">💾 Modifier</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 
 </html>

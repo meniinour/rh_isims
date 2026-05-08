@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Demande d'Absence – ISIMS</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
+
+        :root {
+            --navy: #0d3560;
+            --blue: #1a5ea8;
+            --gold: #8cb43a;
+            --light: #eef4fb;
+            --grey: #6b7280;
+            --border: #c8d8ec;
+            --text: #1a2b3c
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #fff;
+            color: var(--text);
+            margin: 0;
+            padding: 0
+        }
+
+        .stripe-top {
+            height: 7px;
+            background: linear-gradient(90deg, var(--navy) 0%, var(--blue) 60%, var(--gold) 100%)
+        }
+
+        .stripe-bot {
+            height: 4px;
+            background: linear-gradient(90deg, var(--gold) 0%, var(--blue) 40%, var(--navy) 100%)
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 28px 14px;
+            border-bottom: 2px solid var(--border);
+            gap: 12px
+        }
+
+        .logo-block img {
+            height: 58px;
+            display: block
+        }
+
+        .title-block {
+            flex: 1;
+            text-align: center
+        }
+
+        .title-block .ministry {
+            font-size: 8px;
+            font-weight: 600;
+            letter-spacing: .13em;
+            color: var(--grey);
+            text-transform: uppercase;
+            margin-bottom: 3px
+        }
+
+        .title-block h1 {
+            font-family: 'EB Garamond', serif;
+            font-size: 19px;
+            font-weight: 700;
+            color: var(--navy);
+            line-height: 1.2
+        }
+
+        .title-block .subtitle {
+            font-size: 9px;
+            color: var(--blue);
+            font-weight: 600;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            margin-top: 2px
+        }
+
+        .ref-block {
+            text-align: right;
+            min-width: 100px
+        }
+
+        .ref-block .rl {
+            font-size: 7.5px;
+            color: var(--grey);
+            text-transform: uppercase;
+            letter-spacing: .1em
+        }
+
+        .ref-block .rv {
+            font-family: 'EB Garamond', serif;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--navy);
+            border: 1.5px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 7px;
+            display: inline-block;
+            margin-top: 2px
+        }
+
+        .body {
+            padding: 14px 28px 20px
+        }
+
+        .sec {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin: 16px 0 8px
+        }
+
+        .sec .bar {
+            width: 4px;
+            height: 16px;
+            background: linear-gradient(180deg, var(--blue), var(--gold));
+            border-radius: 3px;
+            flex-shrink: 0
+        }
+
+        .sec span {
+            font-size: 8.5px;
+            font-weight: 700;
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            color: var(--navy)
+        }
+
+        .grid {
+            display: grid;
+            border: 1.5px solid var(--border);
+            border-radius: 5px;
+            overflow: hidden
+        }
+
+        .g2 {
+            grid-template-columns: 1fr 1fr
+        }
+
+        .g3 {
+            grid-template-columns: 1fr 1fr 1fr
+        }
+
+        .g4 {
+            grid-template-columns: 1fr 1fr 1fr 1fr
+        }
+
+        .f {
+            padding: 8px 11px;
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            background: #fff
+        }
+
+        .f.nr {
+            border-right: none
+        }
+
+        .f.nb {
+            border-bottom: none
+        }
+
+        .f.full {
+            grid-column: 1/-1
+        }
+
+        .fl {
+            font-size: 7px;
+            font-weight: 700;
+            letter-spacing: .11em;
+            text-transform: uppercase;
+            color: var(--grey);
+            margin-bottom: 3px
+        }
+
+        .fv {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text);
+            min-height: 15px;
+            border-bottom: 1px dotted #b0bec5;
+            padding-bottom: 2px
+        }
+
+        .fv.lg {
+            min-height: 34px
+        }
+
+        .type-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            padding: 10px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 5px
+        }
+
+        .to {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9.5px;
+            font-weight: 600;
+            color: var(--navy)
+        }
+
+        .cb {
+            width: 12px;
+            height: 12px;
+            border: 1.5px solid var(--navy);
+            border-radius: 2px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            flex-shrink: 0
+        }
+
+        .cb.on {
+            background: var(--navy);
+            color: #fff
+        }
+
+        .sig-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px
+        }
+
+        .sig {
+            border: 1.5px solid var(--border);
+            border-radius: 5px;
+            padding: 9px 11px;
+            min-height: 84px;
+            position: relative;
+            background: #fff
+        }
+
+        .stitle {
+            font-size: 7px;
+            font-weight: 700;
+            letter-spacing: .11em;
+            text-transform: uppercase;
+            color: var(--grey);
+            margin-bottom: 5px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 4px
+        }
+
+        .sname {
+            font-size: 9.5px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 3px
+        }
+
+        .sdate {
+            position: absolute;
+            bottom: 7px;
+            left: 11px;
+            right: 11px
+        }
+
+        .sdl {
+            font-size: 7px;
+            color: var(--grey);
+            text-transform: uppercase;
+            letter-spacing: .07em
+        }
+
+        .sdv {
+            font-size: 9.5px;
+            font-weight: 600;
+            border-bottom: 1px dotted #b0bec5;
+            min-height: 13px
+        }
+
+        .stamp-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%
+        }
+
+        .stamp {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: 700;
+            color: var(--grey);
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 7px;
+            line-height: 1.3;
+            margin: 4px auto 0
+        }
+
+        .stamp.ok {
+            border-color: #16a34a;
+            color: #16a34a;
+            background: #f0fdf4
+        }
+
+        .stamp.ko {
+            border-color: #dc2626;
+            color: #dc2626;
+            background: #fef2f2
+        }
+
+        .note {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: var(--light);
+            border-left: 3px solid var(--blue);
+            border-radius: 0 4px 4px 0;
+            font-size: 7.5px;
+            color: var(--grey);
+            line-height: 1.6
+        }
+
+        .footer {
+            padding: 9px 28px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid var(--border);
+            margin-top: 14px
+        }
+
+        .fl2 {
+            font-size: 7.5px;
+            color: var(--grey);
+            line-height: 1.6
+        }
+
+        .fr2 {
+            text-align: right;
+            font-size: 7.5px;
+            color: var(--grey)
+        }
+
+        .flogo {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--navy);
+            letter-spacing: .07em
+        }
+
+        .wm {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-family: 'EB Garamond', serif;
+            font-size: 80px;
+            font-weight: 700;
+            color: rgba(26, 94, 168, .04);
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 0
+        }
+
+        @media print {
+            .wm {
+                position: fixed
+            }
+
+            body {
+                margin: 0
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wm">ISIMS</div>
+    <div class="stripe-top"></div>
+
+    <div class="header">
+        <div class="logo-block">
+            <img src="data:image/jpeg;base64,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"
+                alt="ISIMS">
+        </div>
+        <div class="title-block">
+            <div class="ministry">République Tunisienne · Ministère de l'Enseignement Supérieur</div>
+            <h1>Demande d'Autorisation d'Absence</h1>
+            <div class="subtitle">Institut Supérieur d'Informatique et de Multimédia de Sfax</div>
+        </div>
+        <div class="ref-block">
+            <div class="rl">Référence</div>
+            <div class="rv">{{id}}</div>
+            <div class="rl" style="margin-top:6px">Date de dépôt</div>
+            <div style="font-size:10.5px;font-weight:600;color:var(--text)">{{date_today}}</div>
+        </div>
+    </div>
+
+    <div class="body">
+
+        <!-- Agent -->
+        <div class="sec">
+            <div class="bar"></div><span>Informations de l'agent</span>
+        </div>
+        <div class="grid g2">
+            <div class="f">
+                <div class="fl">Nom &amp; Prénom</div>
+                <div class="fv">{{nom}} {{prenom}}</div>
+            </div>
+            <div class="f nr">
+                <div class="fl">CIN</div>
+                <div class="fv">{{cin}}</div>
+            </div>
+            <div class="f nb">
+                <div class="fl">Poste / Fonction</div>
+                <div class="fv">{{poste}}</div>
+            </div>
+            <div class="f nr nb">
+                <div class="fl">Département / Service</div>
+                <div class="fv">{{departement}}</div>
+            </div>
+        </div>
+
+        <!-- Type -->
+        <div class="sec">
+            <div class="bar"></div><span>Nature de l'absence</span>
+        </div>
+        <div class="type-row">
+            <div class="to"><span class="cb {{cb_conge}}">{{ck_conge}}</span> Congé annuel</div>
+            <div class="to"><span class="cb {{cb_maladie}}">{{ck_maladie}}</span> Maladie</div>
+            <div class="to"><span class="cb {{cb_maternite}}">{{ck_maternite}}</span> Congé maternité</div>
+            <div class="to"><span class="cb {{cb_paternite}}">{{ck_paternite}}</span> Congé paternité</div>
+            <div class="to"><span class="cb {{cb_formation}}">{{ck_formation}}</span> Formation</div>
+            <div class="to"><span class="cb {{cb_solde}}">{{ck_solde}}</span> Sans solde</div>
+            <div class="to"><span class="cb {{cb_autre}}">{{ck_autre}}</span> Autre</div>
+        </div>
+
+        <!-- Période -->
+        <div class="sec">
+            <div class="bar"></div><span>Période d'absence</span>
+        </div>
+        <div class="grid g4">
+            <div class="f nb">
+                <div class="fl">Date de début</div>
+                <div class="fv">{{debut}}</div>
+            </div>
+            <div class="f nb">
+                <div class="fl">Date de fin</div>
+                <div class="fv">{{fin}}</div>
+            </div>
+            <div class="f nb">
+                <div class="fl">Durée (jours)</div>
+                <div class="fv">{{duree}} jour(s)</div>
+            </div>
+            <div class="f nr nb">
+                <div class="fl">Reprise prévue</div>
+                <div class="fv">{{reprise}}</div>
+            </div>
+        </div>
+
+        <!-- Motif -->
+        <div class="sec">
+            <div class="bar"></div><span>Motif</span>
+        </div>
+        <div class="grid">
+            <div class="f full nb fv lg" style="min-height:40px;font-size:11px;font-weight:500">{{motif}}</div>
+        </div>
+
+        <!-- Signatures -->
+        <div class="sec">
+            <div class="bar"></div><span>Signatures &amp; Validation</span>
+        </div>
+        <div class="sig-grid">
+            <div class="sig">
+                <div class="stitle">Signature du demandeur</div>
+                <div class="sname">{{nom}} {{prenom}}</div>
+                <div class="sdate">
+                    <div class="sdl">Date</div>
+                    <div class="sdv">{{date_today}}</div>
+                </div>
+            </div>
+            <div class="sig">
+                <div class="stitle">Avis du responsable hiérarchique</div>
+                <div style="height:46px"></div>
+                <div class="sdate">
+                    <div class="sdl">Cachet &amp; Signature</div>
+                    <div class="sdv">&nbsp;</div>
+                </div>
+            </div>
+            <div class="sig">
+                <div class="stitle">Décision de la Direction</div>
+                <div class="stamp-wrap">
+                    <div class="stamp {{stamp_class}}">{{stamp_text}}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong style="color:var(--navy)">📎 Pièces jointes :</strong>
+            Tout justificatif médical ou administratif doit être joint dans un délai de <strong>48h</strong> à compter
+            de la date de reprise.
+            Toute absence non justifiée sera considérée irrégulière conformément au règlement intérieur de l'ISIMS.
+        </div>
+
+    </div>
+
+    <div class="footer">
+        <div class="fl2">Route de Soukra km 3,5 – BP 242 Sfax 3021, Tunisie<br>Tél : +216 74 862 929 · Fax : +216 74 862
+            930</div>
+        <div class="fr2">
+            <div class="flogo">iSIMS</div>
+            <div>High. Inst. of Comp. Sci. and Multimedia of Sfax</div>
+            <div style="margin-top:2px;color:#aaa">www.isims.usf.tn</div>
+        </div>
+    </div>
+    <div class="stripe-bot"></div>
+</body>
+
+</html>

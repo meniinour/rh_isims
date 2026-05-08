@@ -84,7 +84,7 @@ function addAbsence(data) {
   }
 }
 
-function updateAbsenceStatus(id, statut) {
+function updateAbsenceStatus(id, statut, motifRefus) {
   try {
     if (statut !== 'Approuvée' && statut !== 'Refusée' && statut !== 'En attente') {
       return { success: false, message: 'Statut invalide.' };
@@ -96,6 +96,12 @@ function updateAbsenceStatus(id, statut) {
     for (var i = 1; i < rows.length; i++) {
       if (String(rows[i][0]) === String(id)) {
         sheet.getRange(i + 1, 9).setValue(statut);
+        // Enregistrer le motif de refus dans la colonne 11 si refus
+        if (statut === 'Refusée' && motifRefus) {
+          var lastCol = sheet.getLastColumn();
+          var refusCol = lastCol >= 11 ? 11 : lastCol + 1;
+          sheet.getRange(i + 1, refusCol).setValue(motifRefus);
+        }
 
         var empId = String(rows[i][1]);
         var employees = getEmployees();
@@ -105,7 +111,10 @@ function updateAbsenceStatus(id, statut) {
           if (statut === 'Approuvée') {
             notifyEmployee(cin, '✅ Votre demande d\'absence a été approuvée.', 'success', 'absences');
           } else if (statut === 'Refusée') {
-            notifyEmployee(cin, '❌ Votre demande d\'absence a été refusée. Contactez votre RH.', 'danger', 'absences');
+            var msg = '❌ Votre demande d\'absence a été refusée.';
+            if (motifRefus) msg += ' Motif : ' + motifRefus;
+            else msg += ' Contactez votre RH pour plus d\'informations.';
+            notifyEmployee(cin, msg, 'danger', 'absences');
           }
         }
 

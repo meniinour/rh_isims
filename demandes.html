@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RH Platform – Mes Demandes</title>
+    <?!= include('isims-styles') ?>
+    <style>
+        .type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .type-card {
+            background: #fff;
+            border: 2px solid var(--grey-200, #e5e7eb);
+            border-radius: 14px;
+            padding: 18px 12px 14px;
+            cursor: pointer;
+            text-align: center;
+            transition: border-color .15s, box-shadow .15s, transform .12s;
+            user-select: none;
+        }
+
+        .type-card:hover {
+            border-color: var(--blue-main, #3b82f6);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, .12);
+            transform: translateY(-2px);
+        }
+
+        .type-card.active {
+            border-color: var(--blue-main, #3b82f6);
+            background: var(--blue-ultra, #eff6ff);
+        }
+
+        .type-card .tc-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .type-card .tc-label {
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--text-dark, #111);
+            line-height: 1.3;
+        }
+
+        .type-card .tc-desc {
+            font-size: 11px;
+            color: var(--text-muted, #9ca3af);
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .form-zone {
+            display: none;
+            border-top: 1px solid var(--grey-200, #e5e7eb);
+            margin-top: 18px;
+            padding-top: 22px;
+            animation: fadeSlide .2s ease;
+        }
+
+        @keyframes fadeSlide {
+            from {
+                opacity: 0;
+                transform: translateY(6px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .form-zone-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--blue-dark, #1e3a5f);
+        }
+
+        .form-dyn {
+            display: none;
+        }
+
+        .badge-pending {
+            background: #fff7e6;
+            color: #b45309;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid #fcd34d;
+            white-space: nowrap;
+        }
+
+        .badge-approved {
+            background: #ecfdf5;
+            color: #065f46;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid #6ee7b7;
+            white-space: nowrap;
+        }
+
+        .badge-refused {
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid #fca5a5;
+            white-space: nowrap;
+        }
+
+        .input-ro {
+            background: var(--grey-50, #f9fafb) !important;
+            color: var(--text-light, #6b7280) !important;
+            cursor: default !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="toast-container"></div>
+    <div class="loader-overlay" id="loader">
+        <div class="spinner"></div>
+        <p>Chargement...</p>
+    </div>
+
+    <header class="isims-header">
+        <div class="header-inner">
+            <a class="header-logo" href="?page=landing">
+                <div class="logo-mark">RH</div>
+                <div class="logo-text">
+                    <h1>RH Platform</h1><small>ESPACE EMPLOYÉ</small>
+                </div>
+            </a>
+            <div class="header-spacer"></div>
+            <nav class="header-nav">
+                <a onclick="navigate('emp-dashboard')">🏠 Accueil</a>
+                <a onclick="navigate('tasks-page')">📋 Mes tâches</a>
+                <a onclick="navigate('absences')">📅 Absences</a>
+                <a onclick="navigate('demandes')" style="color:var(--blue-main,#3b82f6);font-weight:700">📨 Demandes</a>
+            </nav>
+            <div class="header-user" id="header-user" onclick="navigate('emp-dashboard')"></div>
+            <button class="btn btn-light btn-sm" style="margin-left:8px" onclick="doLogout()">🚪 Déconnexion</button>
+        </div>
+    </header>
+
+    <div class="sub-header">
+        <div class="sub-header-inner">
+            <span onclick="navigate('emp-dashboard')" style="cursor:pointer">🏠 Accueil</span>
+            <span class="sep">›</span><span class="current">Mes Demandes</span>
+        </div>
+    </div>
+
+    <div class="page-layout">
+        <aside class="isims-sidebar">
+            <div class="sidebar-section-title">Navigation</div>
+            <div id="isims-sidebar-nav"></div>
+            <div class="sidebar-section-title">Compte</div>
+            <button class="sidebar-item" onclick="openModal('modal-pwd')"><span class="s-icon">🔑</span><span>Changer mot de passe</span></button>
+            <button class="sidebar-item" style="color:var(--red)" onclick="doLogout()"><span class="s-icon">🚪</span><span>Déconnexion</span></button>
+        </aside>
+
+        <div class="page-content">
+
+            <div style="margin-bottom:24px">
+                <div class="page-title">📨 Mes Demandes</div>
+                <div class="page-subtitle" id="page-sub">Soumettez et suivez vos demandes RH</div>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-card sc-blue">
+                    <div class="sc-icon">📋</div>
+                    <div class="sc-label">Total</div>
+                    <div class="sc-value" id="s-total">–</div>
+                </div>
+                <div class="stat-card sc-orange">
+                    <div class="sc-icon">⏳</div>
+                    <div class="sc-label">En attente</div>
+                    <div class="sc-value" id="s-pend">–</div>
+                </div>
+                <div class="stat-card sc-green">
+                    <div class="sc-icon">✅</div>
+                    <div class="sc-label">Approuvées</div>
+                    <div class="sc-value" id="s-app">–</div>
+                </div>
+                <div class="stat-card sc-red">
+                    <div class="sc-icon">❌</div>
+                    <div class="sc-label">Refusées</div>
+                    <div class="sc-value" id="s-ref">–</div>
+                </div>
+            </div>
+
+            <!-- NOUVELLE DEMANDE -->
+            <div class="card" style="margin-bottom:24px">
+                <div class="card-header">
+                    <div>
+                        <h3>➕ Nouvelle demande</h3>
+                        <p>Choisissez le type de demande</p>
+                    </div>
+                </div>
+                <div style="padding:0 22px 22px">
+                    <div class="type-grid">
+                        <div class="type-card" onclick="selectType('deplacement',this)">
+                            <div class="tc-icon">✈️</div>
+                            <div class="tc-label">Déplacement</div>
+                            <div class="tc-desc">Mission, voyage professionnel</div>
+                        </div>
+                        <div class="type-card" onclick="selectType('changement_poste',this)">
+                            <div class="tc-icon">🔄</div>
+                            <div class="tc-label">Changement de poste</div>
+                            <div class="tc-desc">Mutation, promotion interne</div>
+                        </div>
+                        <div class="type-card" onclick="selectType('formation',this)">
+                            <div class="tc-icon">🎓</div>
+                            <div class="tc-label">Formation</div>
+                            <div class="tc-desc">Stage, certification, séminaire</div>
+                        </div>
+                        <div class="type-card" onclick="selectType('avance_salaire',this)">
+                            <div class="tc-icon">💰</div>
+                            <div class="tc-label">Avance sur salaire</div>
+                            <div class="tc-desc">Demande d'acompte</div>
+                        </div>
+                        <div class="type-card" onclick="selectType('attestation',this)">
+                            <div class="tc-icon">📜</div>
+                            <div class="tc-label">Attestation</div>
+                            <div class="tc-desc">Certificat d'emploi officiel</div>
+                        </div>
+                        <div class="type-card" onclick="selectType('teletravail',this)">
+                            <div class="tc-icon">🏠</div>
+                            <div class="tc-label">Télétravail</div>
+                            <div class="tc-desc">Travail à distance</div>
+                        </div>
+                        <div class="type-card" onclick="selectType('materiel',this)">
+                            <div class="tc-icon">💻</div>
+                            <div class="tc-label">Matériel</div>
+                            <div class="tc-desc">PC, téléphone, équipement</div>
+                        </div>
+                        <div class="type-card" onclick="selectType('autre',this)">
+                            <div class="tc-icon">📝</div>
+                            <div class="tc-label">Autre</div>
+                            <div class="tc-desc">Toute autre demande RH</div>
+                        </div>
+                    </div>
+
+                    <div class="form-zone" id="form-zone">
+
+                        <!-- DEPLACEMENT -->
+                        <div class="form-dyn" id="form-deplacement">
+                            <div class="form-zone-title">✈️ Demande de déplacement</div>
+                            <div class="form-grid">
+                                <div class="form-group"><label>Destination *</label><input class="input" id="dp-dest"
+                                        type="text" placeholder="Ville / Pays"></div>
+                                <div class="form-group"><label>Objet du déplacement *</label><input class="input"
+                                        id="dp-objet" type="text" placeholder="Ex : réunion client, conférence...">
+                                </div>
+                                <div class="form-group"><label>Date départ *</label><input class="input" id="dp-debut"
+                                        type="date"></div>
+                                <div class="form-group"><label>Date retour *</label><input class="input" id="dp-fin"
+                                        type="date"></div>
+                                <div class="form-group"><label>Mode de transport</label>
+                                    <select class="input" id="dp-transport">
+                                        <option value="">-- Choisir --</option>
+                                        <option>Avion</option>
+                                        <option>Train</option>
+                                        <option>Voiture de service</option>
+                                        <option>Voiture personnelle</option>
+                                        <option>Autre</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Budget estimé (DT)</label><input class="input"
+                                        id="dp-budget" type="number" min="0" placeholder="0"></div>
+                                <div class="form-group full"><label>Justification</label><textarea class="input"
+                                        id="dp-motif" rows="3" placeholder="Contexte et objectifs..."></textarea></div>
+                                <div class="form-group full"><label>Document joint (optionnel)</label><input type="file"
+                                        class="input" id="dp-file" accept="image/*,application/pdf"></div>
+                            </div>
+                        </div>
+
+                        <!-- CHANGEMENT POSTE -->
+                        <div class="form-dyn" id="form-changement_poste">
+                            <div class="form-zone-title">🔄 Demande de changement de poste</div>
+                            <div class="form-grid">
+                                <div class="form-group"><label>Poste actuel</label><input class="input input-ro"
+                                        id="cp-actuel" type="text" readonly></div>
+                                <div class="form-group"><label>Poste / Département souhaité *</label><input
+                                        class="input" id="cp-souhaite" type="text"
+                                        placeholder="Ex : Chef de projet, Département IT..."></div>
+                                <div class="form-group"><label>Type de demande</label>
+                                    <select class="input" id="cp-type">
+                                        <option>Mutation interne</option>
+                                        <option>Promotion</option>
+                                        <option>Réaffectation</option>
+                                        <option>Autre</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Date souhaitée</label><input class="input" id="cp-date"
+                                        type="date"></div>
+                                <div class="form-group full"><label>Motivation *</label><textarea class="input"
+                                        id="cp-motif" rows="4"
+                                        placeholder="Vos raisons et compétences pour ce changement..."></textarea></div>
+                                <div class="form-group full"><label>CV / Document joint (optionnel)</label><input
+                                        type="file" class="input" id="cp-file"
+                                        accept="image/*,application/pdf,.doc,.docx"></div>
+                            </div>
+                        </div>
+
+                        <!-- FORMATION -->
+                        <div class="form-dyn" id="form-formation">
+                            <div class="form-zone-title">🎓 Demande de formation</div>
+                            <div class="form-grid">
+                                <div class="form-group"><label>Intitulé de la formation *</label><input class="input"
+                                        id="fo-titre" type="text" placeholder="Ex : Formation React, PMP..."></div>
+                                <div class="form-group"><label>Organisme / Prestataire</label><input class="input"
+                                        id="fo-org" type="text" placeholder="Nom de l'organisme..."></div>
+                                <div class="form-group"><label>Date début *</label><input class="input" id="fo-debut"
+                                        type="date"></div>
+                                <div class="form-group"><label>Date fin *</label><input class="input" id="fo-fin"
+                                        type="date"></div>
+                                <div class="form-group"><label>Lieu</label><input class="input" id="fo-lieu" type="text"
+                                        placeholder="Présentiel / En ligne / Ville..."></div>
+                                <div class="form-group"><label>Coût estimé (DT)</label><input class="input" id="fo-cout"
+                                        type="number" min="0" placeholder="0"></div>
+                                <div class="form-group full"><label>Objectifs / Bénéfices attendus *</label><textarea
+                                        class="input" id="fo-motif" rows="3"
+                                        placeholder="Comment cette formation bénéficiera à votre poste ?"></textarea>
+                                </div>
+                                <div class="form-group full"><label>Programme / Brochure (optionnel)</label><input
+                                        type="file" class="input" id="fo-file" accept="image/*,application/pdf"></div>
+                            </div>
+                        </div>
+
+                        <!-- AVANCE SALAIRE -->
+                        <div class="form-dyn" id="form-avance_salaire">
+                            <div class="form-zone-title">💰 Demande d'avance sur salaire</div>
+                            <div class="form-grid">
+                                <div class="form-group"><label>Montant demandé (DT) *</label><input class="input"
+                                        id="av-montant" type="number" min="1" placeholder="0"></div>
+                                <div class="form-group"><label>Remboursement sur</label>
+                                    <select class="input" id="av-echeances">
+                                        <option value="1">1 mois (intégral)</option>
+                                        <option value="2">2 mois</option>
+                                        <option value="3">3 mois</option>
+                                        <option value="6">6 mois</option>
+                                    </select>
+                                </div>
+                                <div class="form-group full"><label>Motif *</label><textarea class="input" id="av-motif"
+                                        rows="3" placeholder="Raison de cette demande..."></textarea></div>
+                            </div>
+                        </div>
+
+                        <!-- ATTESTATION -->
+                        <div class="form-dyn" id="form-attestation">
+                            <div class="form-zone-title">📜 Demande d'attestation de travail</div>
+                            <div class="form-grid">
+                                <div class="form-group"><label>Destinataire / Usage</label><input class="input"
+                                        id="at-dest" type="text" placeholder="Ex : Banque, Ambassade, CNSS..."></div>
+                                <div class="form-group"><label>Langue souhaitée</label>
+                                    <select class="input" id="at-langue">
+                                        <option>Français</option>
+                                        <option>Arabe</option>
+                                        <option>Anglais</option>
+                                    </select>
+                                </div>
+                                <div class="form-group full"><label>Précisions supplémentaires</label><textarea
+                                        class="input" id="at-motif" rows="2"
+                                        placeholder="Mentions particulières à inclure..."></textarea></div>
+                            </div>
+                        </div>
+
+                        <!-- TELETRAVAIL -->
+                        <div class="form-dyn" id="form-teletravail">
+                            <div class="form-zone-title">🏠 Demande de télétravail</div>
+                            <div class="form-grid">
+                                <div class="form-group"><label>Type</label>
+                                    <select class="input" id="tt-type">
+                                        <option>Ponctuel</option>
+                                        <option>Régulier (hebdomadaire)</option>
+                                        <option>Temporaire exceptionnel</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Date début *</label><input class="input" id="tt-debut"
+                                        type="date"></div>
+                                <div class="form-group"><label>Date fin</label><input class="input" id="tt-fin"
+                                        type="date"></div>
+                                <div class="form-group"><label>Jours concernés</label><input class="input" id="tt-jours"
+                                        type="text" placeholder="Ex : Lundi, Mercredi..."></div>
+                                <div class="form-group full"><label>Justification *</label><textarea class="input"
+                                        id="tt-motif" rows="3"
+                                        placeholder="Raison de la demande, équipement disponible..."></textarea></div>
+                            </div>
+                        </div>
+
+                        <!-- MATERIEL -->
+                        <div class="form-dyn" id="form-materiel">
+                            <div class="form-zone-title">💻 Demande de matériel / équipement</div>
+                            <div class="form-grid">
+                                <div class="form-group"><label>Type de matériel *</label>
+                                    <select class="input" id="ma-type">
+                                        <option value="">-- Sélectionner --</option>
+                                        <option>Ordinateur portable</option>
+                                        <option>Ordinateur fixe</option>
+                                        <option>Écran</option>
+                                        <option>Téléphone</option>
+                                        <option>Clavier / Souris</option>
+                                        <option>Mobilier</option>
+                                        <option>Logiciel / Licence</option>
+                                        <option>Autre</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Précision (marque, modèle...)</label><input class="input"
+                                        id="ma-detail" type="text" placeholder="Ex : Dell XPS 15..."></div>
+                                <div class="form-group full"><label>Justification *</label><textarea class="input"
+                                        id="ma-motif" rows="3"
+                                        placeholder="Pourquoi avez-vous besoin de ce matériel ?"></textarea></div>
+                            </div>
+                        </div>
+
+                        <!-- AUTRE -->
+                        <div class="form-dyn" id="form-autre">
+                            <div class="form-zone-title">📝 Autre demande RH</div>
+                            <div class="form-grid">
+                                <div class="form-group full"><label>Objet de la demande *</label><input class="input"
+                                        id="au-objet" type="text" placeholder="Titre de votre demande..."></div>
+                                <div class="form-group full"><label>Description détaillée *</label><textarea
+                                        class="input" id="au-motif" rows="5"
+                                        placeholder="Décrivez votre demande en détail..."></textarea></div>
+                                <div class="form-group full"><label>Document joint (optionnel)</label><input type="file"
+                                        class="input" id="au-file" accept="image/*,application/pdf,.doc,.docx"></div>
+                            </div>
+                        </div>
+
+                        <div
+                            style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--grey-100,#f3f4f6)">
+                            <button class="btn btn-light" onclick="cancelForm()">✕ Annuler</button>
+                            <button class="btn btn-primary" onclick="submitDemande()">✅ Soumettre la demande</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HISTORIQUE -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3>📂 Historique de mes demandes</h3>
+                        <p id="dem-count">0 demande(s)</p>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center">
+                        <select class="input" id="filter-type" onchange="filterDemandes()"
+                            style="font-size:13px;padding:6px 10px;width:195px">
+                            <option value="">Tous les types</option>
+                            <option value="Déplacement">✈️ Déplacement</option>
+                            <option value="Changement de poste">🔄 Changement de poste</option>
+                            <option value="Formation">🎓 Formation</option>
+                            <option value="Avance salaire">💰 Avance salaire</option>
+                            <option value="Attestation">📜 Attestation</option>
+                            <option value="Télétravail">🏠 Télétravail</option>
+                            <option value="Matériel">💻 Matériel</option>
+                            <option value="Autre">📝 Autre</option>
+                        </select>
+                        <button class="btn btn-outline btn-sm" onclick="loadDemandes()">🔄 Actualiser</button>
+                    </div>
+                </div>
+                <div class="table-wrapper" style="padding:0 22px 22px">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Résumé</th>
+                                <th>Date soumission</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dem-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal : Changer mot de passe -->
+    <div class="modal-overlay" id="modal-pwd">
+        <div class="modal" style="max-width:420px">
+            <div class="modal-header">
+                <h3>🔑 Changer le mot de passe</h3><button class="modal-close"
+                    onclick="closeModal('modal-pwd')">✕</button>
+            </div>
+            <div class="form-group" style="margin-bottom:14px"><label>Ancien mot de passe</label><input class="input"
+                    type="password" id="old-pwd"></div>
+            <div class="form-group" style="margin-bottom:14px"><label>Nouveau mot de passe</label><input class="input"
+                    type="password" id="new-pwd"></div>
+            <div class="form-group"><label>Confirmer nouveau mot de passe</label><input class="input" type="password"
+                    id="conf-pwd"></div>
+            <div class="modal-footer"><button class="btn btn-light"
+                    onclick="closeModal('modal-pwd')">Annuler</button><button class="btn btn-primary"
+                    onclick="changePwd()">💾 Modifier</button></div>
+        </div>
+    </div>
+
+    <!-- Modal : Détail demande -->
+    <div class="modal-overlay" id="modal-detail">
+        <div class="modal" style="max-width:520px">
+            <div class="modal-header">
+                <h3 id="detail-title">Détail de la demande</h3><button class="modal-close"
+                    onclick="closeModal('modal-detail')">✕</button>
+            </div>
+            <div id="detail-body" style="padding:0 4px 4px;max-height:420px;overflow-y:auto"></div>
+            <div class="modal-footer"><button class="btn btn-light" onclick="closeModal('modal-detail')">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <?!= include('isims-scripts') ?>
+    <script>
+        var session = requireAuth('employee');
+        if (!session) throw new Error('Not authenticated');
+        buildIsimsNav('demandes', 'employee');
+
+        var allDemandes = [];
+        var currentType = null;
+        var myEmp = null;
+
+        var TYPE_META = {
+            deplacement: { label: 'Déplacement', icon: '✈️' },
+            changement_poste: { label: 'Changement de poste', icon: '🔄' },
+            formation: { label: 'Formation', icon: '🎓' },
+            avance_salaire: { label: 'Avance salaire', icon: '💰' },
+            attestation: { label: 'Attestation', icon: '📜' },
+            teletravail: { label: 'Télétravail', icon: '🏠' },
+            materiel: { label: 'Matériel', icon: '💻' },
+            autre: { label: 'Autre', icon: '📝' }
+        };
+
+        /* ── Init ── */
+        callServer('getEmployeeByCIN', [session.cin], function (err, emp) {
+            if (!emp) return;
+            myEmp = emp;
+            document.getElementById('page-sub').textContent =
+                'Demandes de ' + (emp['Nom'] || '') + ' ' + (emp['Prénom'] || '') + ' · CIN : ' + session.cin;
+            // Pré-remplir poste actuel si besoin
+            document.getElementById('cp-actuel').value = (emp['Poste'] || '–') + ' / ' + (emp['Département'] || '–');
+        });
+        loadDemandes();
+
+        /* ── Sélection du type (depuis sidebar) ── */
+        function selectTypeById(type) {
+            var card = document.querySelector('.type-card[onclick*="' + type + '"]');
+            if (card) selectType(type, card);
+            // scroll to the new demande section
+            document.querySelector('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        /* ── Sélection du type ── */
+        function selectType(type, el) {
+            document.querySelectorAll('.type-card').forEach(function (c) { c.classList.remove('active'); });
+            el.classList.add('active');
+            currentType = type;
+
+            document.querySelectorAll('.form-dyn').forEach(function (f) { f.style.display = 'none'; });
+            var fd = document.getElementById('form-' + type);
+            if (fd) fd.style.display = '';
+
+            var zone = document.getElementById('form-zone');
+            zone.style.display = '';
+            zone.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function cancelForm() {
+            document.querySelectorAll('.type-card').forEach(function (c) { c.classList.remove('active'); });
+            document.getElementById('form-zone').style.display = 'none';
+            resetAllFields();
+            currentType = null;
+        }
+
+        /* ── Collecte des données ── */
+        function v(id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; }
+
+        function collectData() {
+            if (!currentType) return null;
+            var meta = TYPE_META[currentType] || {};
+            var d = {
+                type: meta.label || currentType,
+                typeKey: currentType,
+                employeId: myEmp ? myEmp['ID'] : '',
+                cin: session.cin,
+                statut: 'En attente',
+                dateCreation: new Date().toISOString()
+            };
+
+            switch (currentType) {
+                case 'deplacement':
+                    d.destination = v('dp-dest'); d.objet = v('dp-objet');
+                    d.dateDebut = v('dp-debut'); d.dateFin = v('dp-fin');
+                    d.transport = v('dp-transport'); d.budget = v('dp-budget');
+                    d.motif = v('dp-motif');
+                    d.resume = d.objet + ' → ' + d.destination;
+                    if (!d.destination || !d.objet || !d.dateDebut || !d.dateFin) return null;
+                    break;
+                case 'changement_poste':
+                    d.posteActuel = v('cp-actuel'); d.posteSouhaite = v('cp-souhaite');
+                    d.typeDemande = v('cp-type'); d.dateSouhaitee = v('cp-date');
+                    d.motif = v('cp-motif');
+                    d.resume = d.typeDemande + ' → ' + d.posteSouhaite;
+                    if (!d.posteSouhaite || !d.motif) return null;
+                    break;
+                case 'formation':
+                    d.titre = v('fo-titre'); d.organisme = v('fo-org');
+                    d.dateDebut = v('fo-debut'); d.dateFin = v('fo-fin');
+                    d.lieu = v('fo-lieu'); d.cout = v('fo-cout'); d.motif = v('fo-motif');
+                    d.resume = d.titre + (d.organisme ? ' (' + d.organisme + ')' : '');
+                    if (!d.titre || !d.dateDebut || !d.dateFin || !d.motif) return null;
+                    break;
+                case 'avance_salaire':
+                    d.montant = v('av-montant'); d.echeances = v('av-echeances'); d.motif = v('av-motif');
+                    d.resume = d.montant + ' DT sur ' + d.echeances + ' mois';
+                    if (!d.montant || !d.motif) return null;
+                    break;
+                case 'attestation':
+                    d.destinataire = v('at-dest'); d.langue = v('at-langue'); d.motif = v('at-motif');
+                    d.resume = 'Pour ' + (d.destinataire || 'usage personnel') + ' · ' + d.langue;
+                    break;
+                case 'teletravail':
+                    d.typeTT = v('tt-type'); d.dateDebut = v('tt-debut');
+                    d.dateFin = v('tt-fin'); d.jours = v('tt-jours'); d.motif = v('tt-motif');
+                    d.resume = d.typeTT + (d.jours ? ' (' + d.jours + ')' : '');
+                    if (!d.dateDebut || !d.motif) return null;
+                    break;
+                case 'materiel':
+                    d.typeMat = v('ma-type'); d.detail = v('ma-detail'); d.motif = v('ma-motif');
+                    d.resume = d.typeMat + (d.detail ? ' – ' + d.detail : '');
+                    if (!d.typeMat || !d.motif) return null;
+                    break;
+                case 'autre':
+                    d.objet = v('au-objet'); d.motif = v('au-motif');
+                    d.resume = d.objet;
+                    if (!d.objet || !d.motif) return null;
+                    break;
+            }
+            return d;
+        }
+
+        /* ── Soumission ── */
+        function submitDemande() {
+            if (!currentType) { showToast('Veuillez choisir un type de demande', 'error'); return; }
+            var data = collectData();
+            if (!data) { showToast('Veuillez remplir tous les champs obligatoires (*)', 'error'); return; }
+            showLoader(true);
+            callServer('addDemande', [data], function (err, res) {
+                showLoader(false);
+                if (res && res.success) {
+                    showToast('Demande soumise avec succès ✅', 'success');
+                    cancelForm();
+                    loadDemandes();
+                } else {
+                    showToast((res && res.message) || 'Erreur lors de la soumission', 'error');
+                }
+            });
+        }
+
+        /* ── Chargement ── */
+        function loadDemandes() {
+            callServer('getDemandes', [session.cin], function (err, data) {
+                if (err) return;
+                allDemandes = data || [];
+                var tot = allDemandes.length;
+                var pend = allDemandes.filter(function (d) { return d['Statut'] === 'En attente'; }).length;
+                var app = allDemandes.filter(function (d) { return d['Statut'] === 'Approuvée'; }).length;
+                var ref = allDemandes.filter(function (d) { return d['Statut'] === 'Refusée'; }).length;
+                document.getElementById('s-total').textContent = tot;
+                document.getElementById('s-pend').textContent = pend;
+                document.getElementById('s-app').textContent = app;
+                document.getElementById('s-ref').textContent = ref;
+                renderTable(allDemandes);
+            });
+        }
+
+        /* ── Rendu du tableau ── */
+        function renderTable(list) {
+            document.getElementById('dem-count').textContent = list.length + ' demande(s)';
+            var tbody = document.getElementById('dem-tbody');
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">📋</div><p>Aucune demande trouvée</p></div></td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(function (d) {
+                var isPending = d['Statut'] === 'En attente';
+
+                var badge = isPending
+                    ? '<span class="badge-pending">⏳ En attente</span>'
+                    : d['Statut'] === 'Approuvée'
+                        ? '<span class="badge-approved">✅ Approuvée</span>'
+                        : '<span class="badge-refused">❌ Refusée</span>';
+
+                var safeD = encodeURIComponent(JSON.stringify(d));
+                /* 🗑️ Supprimer UNIQUEMENT si statut "En attente" */
+                var actions = '<button class="btn btn-outline btn-sm" onclick="viewDetail(decodeD(\'' + safeD + '\'))" title="Voir détail">👁️</button>';
+                if (isPending) {
+                    actions += ' <button class="btn btn-danger btn-sm" onclick="deleteDemande(\'' + esc(d['ID']) + '\')" title="Supprimer">🗑️</button>';
+                }
+
+                return '<tr>' +
+                    '<td><span class="badge badge-grey">' + esc(d['Type'] || '–') + '</span></td>' +
+                    '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(d['Résumé'] || '') + '">' + esc(d['Résumé'] || '–') + '</td>' +
+                    '<td><small>' + fmtDate(d['Date Création'] || d['Date'] || '') + '</small></td>' +
+                    '<td>' + badge + '</td>' +
+                    '<td style="white-space:nowrap">' + actions + '</td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        function decodeD(enc) { return JSON.parse(decodeURIComponent(enc)); }
+
+        function filterDemandes() {
+            var q = document.getElementById('filter-type').value;
+            renderTable(q ? allDemandes.filter(function (d) {
+                return (d['Type'] || '') === q;
+            }) : allDemandes);
+        }
+
+        /* ── Supprimer (En attente uniquement) ── */
+        function deleteDemande(id) {
+            confirmAction('Supprimer cette demande ?', function () {
+                callServer('deleteDemande', [id], function (err, res) {
+                    if (res && res.success) { showToast('Demande supprimée', 'info'); loadDemandes(); }
+                    else showToast((res && res.message) || 'Erreur suppression', 'error');
+                });
+            });
+        }
+
+        /* ── Voir détail ── */
+        function viewDetail(d) {
+            var meta = TYPE_META[d['typeKey'] || d['TypeKey'] || ''] || {};
+            document.getElementById('detail-title').textContent = (meta.icon || '📋') + ' ' + (d['Type'] || 'Demande');
+            var skip = ['ID', 'typeKey', 'TypeKey', 'employeId', 'cin'];
+            var rows = Object.entries(d).filter(function (kv) {
+                return !skip.includes(kv[0]) && kv[1] && String(kv[1]).trim() !== '';
+            }).map(function (kv) {
+                return '<tr>' +
+                    '<td style="font-weight:600;color:var(--text-light);font-size:12px;padding:7px 14px 7px 0;white-space:nowrap;vertical-align:top">' + esc(kv[0]) + '</td>' +
+                    '<td style="font-size:13px;padding:7px 0;color:var(--text-dark)">' + esc(String(kv[1])) + '</td>' +
+                    '</tr>';
+            }).join('');
+            document.getElementById('detail-body').innerHTML = '<table style="width:100%;border-collapse:collapse">' + rows + '</table>';
+            openModal('modal-detail');
+        }
+
+        /* ── Reset champs ── */
+        function resetAllFields() {
+            ['dp-dest', 'dp-objet', 'dp-debut', 'dp-fin', 'dp-budget', 'dp-motif',
+                'cp-souhaite', 'cp-date', 'cp-motif',
+                'fo-titre', 'fo-org', 'fo-debut', 'fo-fin', 'fo-lieu', 'fo-cout', 'fo-motif',
+                'av-montant', 'av-motif',
+                'at-dest', 'at-motif',
+                'tt-debut', 'tt-fin', 'tt-jours', 'tt-motif',
+                'ma-detail', 'ma-motif',
+                'au-objet', 'au-motif'
+            ].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ''; });
+        }
+
+        /* ── Mot de passe ── */
+        function changePwd() {
+            var old = document.getElementById('old-pwd').value;
+            var nw = document.getElementById('new-pwd').value;
+            var cf = document.getElementById('conf-pwd').value;
+            if (!old || !nw) { showToast('Remplissez tous les champs', 'error'); return; }
+            if (nw !== cf) { showToast('Les mots de passe ne correspondent pas', 'error'); return; }
+            if (nw.length < 6) { showToast('Le mot de passe doit faire au moins 6 caractères', 'error'); return; }
+            callServer('changePassword', [session.cin, old, nw], function (err, res) {
+                if (res && res.success) { showToast('Mot de passe modifié ✅', 'success'); closeModal('modal-pwd'); }
+                else showToast((res && res.message) || 'Erreur', 'error');
+            });
+        }
+    </script>
+</body>
+
+</html>

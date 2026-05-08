@@ -21,25 +21,101 @@ var CONFIG = {
 };
 
 /**
- * Get a print template populated with data
+ * ============================================================
+ *  getPrintTemplate  –  patch à ajouter dans votre Code.gs
+ *  (ou le fichier qui contient déjà getPrintTemplate)
+ * ============================================================
+ *
+ *  Appel depuis absences.html :
+ *    callServer('getPrintTemplate', ['tpl-absence', { ...data }], callback)
  */
-function getPrintTemplate(templateId, data) {
-  var template = HtmlService.createTemplateFromFile('PrintTemplates');
-  var html = template.evaluate().getContent();
-  
-  var startTag = '<div id="' + templateId + '"';
-  var startIndex = html.indexOf(startTag);
-  if (startIndex === -1) return '';
-  
-  var endIndex = html.indexOf('</div>', html.indexOf('p-footer', startIndex));
-  var tplHtml = html.substring(startIndex, endIndex + 6);
-  
-  for (var key in data) {
-    var re = new RegExp('{{' + key + '}}', 'g');
-    tplHtml = tplHtml.replace(re, data[key]);
+
+function getPrintTemplate(templateName, data) {
+  try {
+    var tpl = HtmlService.createTemplateFromFile(templateName);
+
+    // ── helpers ──────────────────────────────────────────
+    function esc(v) { return String(v || '').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function fmtDate(d) {
+      if (!d) return '__ / __ / ______';
+      var dd = new Date(d);
+      if (isNaN(dd)) return String(d);
+      return Utilities.formatDate(dd, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+    }
+
+    function addDays(d, n) {
+      var r = new Date(d); r.setDate(r.getDate() + n); return r;
+    }
+
+    function checkbox(type, key) {
+      var match = String(type || '').toLowerCase().trim() === key.toLowerCase().trim();
+      return { cls: match ? 'on' : '', mark: match ? '✓' : '' };
+    }
+
+    // ── remplissage des variables ─────────────────────────
+    var d = data || {};
+
+    // Référence & date
+    tpl.id         = esc(d.id        || '–');
+    tpl.date_today = esc(d.date_today || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy'));
+
+    // Agent
+    tpl.nom        = esc(d.nom      || '');
+    tpl.prenom     = esc(d.prenom   || '');
+    tpl.cin        = esc(d.cin      || '–');
+    tpl.poste      = esc(d.poste    || '–');
+    tpl.departement= esc(d.departement || '–');
+
+    // Type checkboxes
+    var types = {
+      conge      : 'Congé annuel',
+      maladie    : 'Maladie',
+      maternite  : 'Congé maternité',
+      paternite  : 'Congé paternité',
+      formation  : 'Formation',
+      solde      : 'Sans solde',
+      autre      : 'Autre'
+    };
+    Object.keys(types).forEach(function(k) {
+      var cb = checkbox(d.type, types[k]);
+      tpl['cb_' + k] = cb.cls;
+      tpl['ck_' + k] = cb.mark || '&nbsp;';
+    });
+
+    // Dates
+    tpl.debut  = esc(fmtDate(d.debut));
+    tpl.fin    = esc(fmtDate(d.fin));
+    tpl.duree  = esc(String(d.duree  || '–'));
+    tpl.motif  = esc(d.motif || '');
+
+    // Reprise = fin + 1 jour
+    if (d.fin) {
+      try { tpl.reprise = esc(fmtDate(addDays(d.fin, 1))); }
+      catch(e2) { tpl.reprise = '–'; }
+    } else {
+      tpl.reprise = '–';
+    }
+
+    // Statut stamp
+    var statut = String(d.statut || 'En attente');
+    if (statut === 'Approuvée') {
+      tpl.stamp_class = 'ok';
+      tpl.stamp_text  = '✓ Approuvée';
+    } else if (statut === 'Refusée') {
+      tpl.stamp_class = 'ko';
+      tpl.stamp_text  = '✗ Refusée';
+    } else {
+      tpl.stamp_class = '';
+      tpl.stamp_text  = 'En attente de décision';
+    }
+
+    return tpl.evaluate().getContent();
+
+  } catch(e) {
+    Logger.log('❌ getPrintTemplate error: ' + e.message);
+    return '<p style="color:red;font-family:sans-serif;padding:20px">Erreur template : ' + e.message + '</p>';
   }
-  
-  return tplHtml;
 }
 
 /**
@@ -86,6 +162,15 @@ function doGet(e) {
       break;
     case 'dashboard':
       html = HtmlService.createTemplateFromFile('dashboard');
+      break;
+    case 'demandes':
+      html = HtmlService.createTemplateFromFile('demandes');
+      break;
+    case 'admin-demandes':
+      html = HtmlService.createTemplateFromFile('admin-demandes');
+      break;
+    case 'admin-absences-employee':
+      html = HtmlService.createTemplateFromFile('admin-absences-employee');
       break;
     case 'landing':
       html = HtmlService.createTemplateFromFile('landing');

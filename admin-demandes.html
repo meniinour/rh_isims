@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RH Platform – Demandes (Admin)</title>
+    <?!= include('isims-styles') ?>
+    <style>
+        /* ── Tab system ──────────────────────────────────────────────── */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            border-bottom: 2px solid var(--grey-200, #e5e7eb);
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-light, #94a3b8);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            border-radius: 6px 6px 0 0;
+            transition: color .2s, border-color .2s, background .2s;
+        }
+
+        .tab-btn:hover {
+            background: var(--grey-50, #f8fafc);
+            color: var(--grey-800, #1e293b);
+        }
+
+        .tab-btn.active {
+            color: var(--blue-main, #0055B8);
+            border-bottom-color: var(--blue-main, #0055B8);
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* ── Filter bar ──────────────────────────────────────────────── */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .filter-bar .input {
+            padding: 7px 12px;
+            font-size: 12px;
+            min-width: 140px;
+        }
+
+        .filter-bar .input-search {
+            min-width: 220px;
+        }
+
+        /* ── Demande cards in list ────────────────────────────────────── */
+        .demande-row {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr 1fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--grey-100, #f1f5f9);
+            transition: background .15s;
+            font-size: 13px;
+        }
+
+        .demande-row:hover {
+            background: var(--grey-50, #f8fafc);
+        }
+
+        .demande-row:last-child {
+            border-bottom: none;
+        }
+
+        .demande-row-head {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--text-light, #94a3b8);
+            padding: 10px 18px;
+            background: var(--grey-50, #f8fafc);
+            border-bottom: 1px solid var(--grey-200, #e5e7eb);
+        }
+
+        /* ── Template card grid ──────────────────────────────────────── */
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .template-card {
+            border: 1px solid var(--grey-200, #e5e7eb);
+            border-radius: 12px;
+            padding: 18px;
+            background: white;
+            transition: box-shadow .2s, border-color .2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .template-card:hover {
+            box-shadow: 0 4px 18px rgba(0, 0, 0, .08);
+            border-color: var(--blue-main, #0055B8);
+        }
+
+        .template-card .tc-icon {
+            font-size: 28px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .template-card .tc-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--grey-900, #0f172a);
+            margin-bottom: 4px;
+        }
+
+        .template-card .tc-desc {
+            font-size: 12px;
+            color: var(--text-light, #94a3b8);
+            line-height: 1.5;
+        }
+
+        .template-card .tc-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .template-card .tc-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+
+        .tc-badge.admin-only {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+
+        .tc-badge.shared {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        /* ── Dynamic fields builder ──────────────────────────────────── */
+        .field-builder-row {
+            display: grid;
+            grid-template-columns: 1fr 130px 80px auto;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .field-builder-row .input {
+            padding: 7px 10px;
+            font-size: 12px;
+        }
+
+        /* ── Preview chip ────────────────────────────────────────────── */
+        .field-preview-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--grey-50, #f8fafc);
+            border: 1px solid var(--grey-200, #e5e7eb);
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 11px;
+            margin: 3px;
+            color: var(--grey-800, #1e293b);
+        }
+
+        /* ── New demande form ────────────────────────────────────────── */
+        .dynamic-field-wrap {
+            margin-bottom: 14px;
+        }
+
+        .dynamic-field-wrap label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--grey-700, #374151);
+            margin-bottom: 5px;
+        }
+
+        .dynamic-field-wrap .input,
+        .dynamic-field-wrap textarea {
+            width: 100%;
+            font-size: 13px;
+        }
+
+        .dynamic-field-wrap textarea {
+            min-height: 70px;
+            resize: vertical;
+        }
+
+        /* ── Status pill ─────────────────────────────────────────────── */
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .pill-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .pill-green {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .pill-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .pill-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .pill-grey {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        /* ── Stat mini cards for demandes ────────────────────────────── */
+        .demandes-kpi {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .d-kpi {
+            background: white;
+            border: 1px solid var(--grey-200, #e5e7eb);
+            border-radius: 12px;
+            padding: 16px 18px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .d-kpi .dk-icon {
+            font-size: 26px;
+        }
+
+        .d-kpi .dk-val {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--grey-900, #0f172a);
+            line-height: 1;
+        }
+
+        .d-kpi .dk-label {
+            font-size: 11px;
+            color: var(--text-light, #94a3b8);
+            margin-top: 2px;
+        }
+
+        @media (max-width:700px) {
+            .demande-row {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .demandes-kpi {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .field-builder-row {
+                grid-template-columns: 1fr auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="toast-container"></div>
+    <div class="loader-overlay" id="loader">
+        <div class="spinner"></div>
+        <p>Chargement...</p>
+    </div>
+
+    <header class="isims-header">
+        <div class="header-inner">
+            <a class="header-logo" href="?page=landing">
+                <div class="logo-mark">RH</div>
+                <div class="logo-text">
+                    <h1>RH Platform</h1><small>ADMINISTRATION</small>
+                </div>
+            </a>
+            <div class="header-spacer"></div>
+            <nav class="header-nav">
+                <a onclick="navigate('admin-dashboard')">📊 Dashboard</a>
+                <a onclick="navigate('employees')">👥 Employés</a>
+                <a onclick="navigate('missions')">🎯 Missions</a>
+                <a onclick="navigate('recommendation')">🤖 IA</a>
+            </nav>
+            <div class="header-user" id="header-user"></div>
+            <button class="btn btn-light btn-sm" style="margin-left:8px" onclick="doLogout()">🚪 Déconnexion</button>
+        </div>
+    </header>
+
+    <div class="sub-header">
+        <div class="sub-header-inner">
+            <span>Admin</span><span class="sep">›</span><span class="current">Demandes</span>
+        </div>
+    </div>
+
+    <div class="page-layout">
+        <aside class="isims-sidebar">
+            <div class="sidebar-section-title">Gestion</div>
+            <div id="isims-sidebar-nav"></div>
+            <div class="sidebar-section-title">Compte</div>
+            <button class="sidebar-item" onclick="navigate('login')"><span class="s-icon">➕</span><span>Créer compte
+                    employé</span></button>
+            <button class="sidebar-item" style="color:var(--red)" onclick="doLogout()"><span
+                    class="s-icon">🚪</span><span>Déconnexion</span></button>
+        </aside>
+
+        <div class="page-content">
+
+            <!-- KPI row -->
+            <div class="demandes-kpi" id="demandes-kpi">
+                <div class="d-kpi">
+                    <div class="dk-icon">📨</div>
+                    <div>
+                        <div class="dk-val" id="k-total">–</div>
+                        <div class="dk-label">Total demandes</div>
+                    </div>
+                </div>
+                <div class="d-kpi">
+                    <div class="dk-icon">⏳</div>
+                    <div>
+                        <div class="dk-val" id="k-pending" style="color:#d97706">–</div>
+                        <div class="dk-label">En attente</div>
+                    </div>
+                </div>
+                <div class="d-kpi">
+                    <div class="dk-icon">✅</div>
+                    <div>
+                        <div class="dk-val" id="k-approved" style="color:#16a34a">–</div>
+                        <div class="dk-label">Approuvées</div>
+                    </div>
+                </div>
+                <div class="d-kpi">
+                    <div class="dk-icon">❌</div>
+                    <div>
+                        <div class="dk-val" id="k-refused" style="color:#dc2626">–</div>
+                        <div class="dk-label">Refusées</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab bar -->
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('tab-list', this)">📋 Toutes les demandes</button>
+                <button class="tab-btn" onclick="switchTab('tab-new', this)">➕ Nouvelle demande</button>
+                <button class="tab-btn" onclick="switchTab('tab-templates', this)">📐 Templates</button>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- TAB 1 : List of all demandes                              -->
+            <!-- ══════════════════════════════════════════════════════════ -->
+            <div class="tab-panel active" id="tab-list">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>📨 Demandes reçues</h3>
+                            <p>Toutes les demandes des employés</p>
+                        </div>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn btn-outline btn-sm" onclick="loadDemandes()">🔄 Actualiser</button>
+                            <button class="btn btn-primary btn-sm"
+                                onclick="switchTab('tab-new', document.querySelectorAll('.tab-btn')[1])">➕ Nouvelle
+                                demande</button>
+                        </div>
+                    </div>
+                    <div style="padding:0 22px 14px">
+                        <div class="filter-bar">
+                            <input type="text" class="input input-search" id="search-demandes"
+                                placeholder="🔍 Rechercher employé, type..." oninput="filterDemandes()">
+                            <select class="input" id="filter-statut" onchange="filterDemandes()">
+                                <option value="">Tous les statuts</option>
+                                <option value="En attente">En attente</option>
+                                <option value="Approuvée">Approuvée</option>
+                                <option value="Refusée">Refusée</option>
+                                <option value="En cours">En cours</option>
+                            </select>
+                            <select class="input" id="filter-type" onchange="filterDemandes()">
+                                <option value="">Tous les types</option>
+                            </select>
+                            <select class="input" id="filter-source" onchange="filterDemandes()">
+                                <option value="">Toutes sources</option>
+                                <option value="employe">Employé</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Header row -->
+                    <div class="demande-row demande-row-head">
+                        <div>Employé / Titre</div>
+                        <div>Type</div>
+                        <div>Date</div>
+                        <div>Source</div>
+                        <div>Statut</div>
+                        <div>Actions</div>
+                    </div>
+                    <div id="demandes-list-body">
+                        <div class="empty-state" style="padding:40px">
+                            <div class="icon">⏳</div>
+                            <p>Chargement...</p>
+                        </div>
+                    </div>
+                    <div style="padding:14px 18px;border-top:1px solid var(--grey-100,#f1f5f9);font-size:12px;color:var(--text-light,#94a3b8)"
+                        id="demandes-count-label"></div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- TAB 2 : New demande form                                  -->
+            <!-- ══════════════════════════════════════════════════════════ -->
+            <div class="tab-panel" id="tab-new">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>➕ Créer une nouvelle demande</h3>
+                            <p>Demande initiée par l'admin</p>
+                        </div>
+                    </div>
+                    <div class="card-body" style="max-width:640px">
+
+                        <!-- Template selector shortcut -->
+                        <div class="form-group"
+                            style="margin-bottom:20px;padding:14px;background:var(--grey-50,#f8fafc);border-radius:10px;border:1px dashed var(--grey-300,#d1d5db)">
+                            <label
+                                style="font-size:12px;font-weight:700;color:var(--grey-700,#374151);display:block;margin-bottom:8px">
+                                📐 Partir d'un template (optionnel)
+                            </label>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <select class="input" id="new-template-select" style="flex:1;font-size:12px"
+                                    onchange="applyTemplate()">
+                                    <option value="">— Sélectionner un template —</option>
+                                </select>
+                                <button class="btn btn-light btn-sm" onclick="clearNewForm()">🗑️ Vider</button>
+                            </div>
+                        </div>
+
+                        <!-- Main fields -->
+                        <div class="form-group" style="margin-bottom:14px">
+                            <label>Employé concerné *</label>
+                            <select class="input" id="new-emp-id">
+                                <option value="">— Sélectionner un employé —</option>
+                            </select>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+                            <div class="form-group">
+                                <label>Type de demande *</label>
+                                <select class="input" id="new-type" onchange="onTypeChange()">
+                                    <option value="">— Choisir —</option>
+                                    <option value="Congé">Congé</option>
+                                    <option value="Document">Document</option>
+                                    <option value="Formation">Formation</option>
+                                    <option value="Attestation">Attestation</option>
+                                    <option value="Avance">Avance sur salaire</option>
+                                    <option value="Télétravail">Télétravail</option>
+                                    <option value="Matériel">Matériel</option>
+                                    <option value="Autre">Autre</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Priorité</label>
+                                <select class="input" id="new-priority">
+                                    <option value="Normale" selected>Normale</option>
+                                    <option value="Haute">Haute</option>
+                                    <option value="Faible">Faible</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom:14px">
+                            <label>Titre / Objet *</label>
+                            <input class="input" id="new-title" placeholder="Résumé court de la demande">
+                        </div>
+                        <div class="form-group" style="margin-bottom:14px">
+                            <label>Description / Détails</label>
+                            <textarea class="input" id="new-desc" rows="4"
+                                placeholder="Expliquer la demande en détail..."></textarea>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+                            <div class="form-group">
+                                <label>Date de début</label>
+                                <input class="input" type="date" id="new-date-start">
+                            </div>
+                            <div class="form-group">
+                                <label>Date de fin</label>
+                                <input class="input" type="date" id="new-date-end">
+                            </div>
+                        </div>
+
+                        <!-- Dynamic extra fields from template -->
+                        <div id="new-dynamic-fields"></div>
+
+                        <!-- Internal note -->
+                        <div class="form-group"
+                            style="margin-bottom:14px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px">
+                            <label style="color:#92400e">🔒 Note interne (admin uniquement)</label>
+                            <textarea class="input" id="new-internal-note" rows="2"
+                                placeholder="Note privée non visible par l'employé..."
+                                style="background:transparent;border:none;padding:4px 0;font-size:12px"></textarea>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+                            <div class="form-group">
+                                <label>Statut initial</label>
+                                <select class="input" id="new-statut">
+                                    <option value="En attente">En attente</option>
+                                    <option value="Approuvée">Approuvée directement</option>
+                                    <option value="En cours">En cours</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Pièce jointe (lien Drive)</label>
+                                <input class="input" id="new-attachment" placeholder="https://drive.google.com/...">
+                            </div>
+                        </div>
+
+                        <div style="display:flex;gap:10px">
+                            <button class="btn btn-primary" onclick="submitNewDemande()">✅ Soumettre la demande</button>
+                            <button class="btn btn-light" onclick="clearNewForm()">🗑️ Effacer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- TAB 3 : Templates                                         -->
+            <!-- ══════════════════════════════════════════════════════════ -->
+            <div class="tab-panel" id="tab-templates">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                    <div>
+                        <h3 style="font-size:16px;font-weight:700;color:var(--grey-900,#0f172a)">📐 Templates de
+                            demandes</h3>
+                        <p style="font-size:12px;color:var(--text-light,#94a3b8);margin-top:2px">Créez des modèles
+                            réutilisables pour accélérer la création de demandes.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openModal('modal-new-template')">➕ Nouveau
+                        template</button>
+                </div>
+                <div class="template-grid" id="templates-grid">
+                    <div class="empty-state" style="grid-column:1/-1;padding:40px">
+                        <div class="icon">⏳</div>
+                        <p>Chargement des templates...</p>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- end page-content -->
+    </div><!-- end page-layout -->
+
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- MODAL : Demande detail / action                                 -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <div class="modal-overlay" id="modal-demande-detail">
+        <div class="modal" style="max-width:560px">
+            <div class="modal-header">
+                <h3 id="detail-modal-title">Détail demande</h3>
+                <button class="modal-close" onclick="closeModal('modal-demande-detail')">✕</button>
+            </div>
+            <div id="detail-modal-body" style="padding:0 4px"></div>
+            <div class="modal-footer" id="detail-modal-footer"></div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- MODAL : New template builder                                    -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <div class="modal-overlay" id="modal-new-template">
+        <div class="modal" style="max-width:620px;max-height:90vh;overflow-y:auto">
+            <div class="modal-header">
+                <h3 id="tpl-modal-title">📐 Nouveau template</h3>
+                <button class="modal-close" onclick="closeModal('modal-new-template')">✕</button>
+            </div>
+
+            <div style="padding:0 4px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+                    <div class="form-group">
+                        <label>Nom du template *</label>
+                        <input class="input" id="tpl-name" placeholder="ex: Demande de congé standard">
+                    </div>
+                    <div class="form-group">
+                        <label>Type par défaut</label>
+                        <select class="input" id="tpl-type">
+                            <option value="">— Choisir —</option>
+                            <option value="Congé">Congé</option>
+                            <option value="Document">Document</option>
+                            <option value="Formation">Formation</option>
+                            <option value="Attestation">Attestation</option>
+                            <option value="Avance">Avance sur salaire</option>
+                            <option value="Télétravail">Télétravail</option>
+                            <option value="Matériel">Matériel</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 80px;gap:14px;margin-bottom:14px">
+                    <div class="form-group">
+                        <label>Icône (emoji)</label>
+                        <input class="input" id="tpl-icon" placeholder="📋" maxlength="4"
+                            style="font-size:20px;text-align:center">
+                    </div>
+                    <div class="form-group">
+                        <label>Visibilité</label>
+                        <select class="input" id="tpl-visibility">
+                            <option value="admin">Admin only</option>
+                            <option value="shared">Partagé</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:14px">
+                    <label>Description du template</label>
+                    <textarea class="input" id="tpl-desc" rows="2" placeholder="À quoi sert ce template ?"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom:14px">
+                    <label>Titre pré-rempli</label>
+                    <input class="input" id="tpl-default-title" placeholder="ex: Demande de congé — {{nom_employé}}">
+                </div>
+
+                <div class="form-group" style="margin-bottom:14px">
+                    <label>Corps / Description pré-remplie</label>
+                    <textarea class="input" id="tpl-default-body" rows="3"
+                        placeholder="Texte par défaut de la demande..."></textarea>
+                </div>
+
+                <!-- Dynamic fields builder -->
+                <div style="margin-bottom:10px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                        <label style="font-size:13px;font-weight:700;color:var(--grey-800,#1e293b)">🔧 Champs
+                            personnalisés</label>
+                        <button class="btn btn-outline btn-sm" onclick="addFieldRow()">➕ Ajouter champ</button>
+                    </div>
+                    <div class="field-builder-row"
+                        style="font-size:11px;font-weight:700;color:var(--text-light,#94a3b8);text-transform:uppercase;padding-bottom:4px">
+                        <div>Nom du champ</div>
+                        <div>Type</div>
+                        <div>Requis ?</div>
+                        <div></div>
+                    </div>
+                    <div id="fields-builder-list"></div>
+                    <div id="fields-preview"
+                        style="margin-top:12px;padding:12px;background:var(--grey-50,#f8fafc);border-radius:8px;min-height:36px;display:flex;flex-wrap:wrap;align-items:center">
+                        <span style="font-size:11px;color:var(--text-light,#94a3b8);margin-right:8px">Aperçu :</span>
+                    </div>
+                </div>
+
+                <div
+                    style="display:flex;gap:10px;padding-top:10px;margin-top:6px;border-top:1px solid var(--grey-100,#f1f5f9)">
+                    <button class="btn btn-primary" onclick="saveTemplate()">💾 Enregistrer le template</button>
+                    <button class="btn btn-light" onclick="closeModal('modal-new-template')">Annuler</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- MODAL : Confirm refuse with reason                              -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <div class="modal-overlay" id="modal-refuse">
+        <div class="modal" style="max-width:420px">
+            <div class="modal-header">
+                <h3>❌ Refuser la demande</h3>
+                <button class="modal-close" onclick="closeModal('modal-refuse')">✕</button>
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+                <label>Motif du refus *</label>
+                <textarea class="input" id="refuse-reason" rows="3"
+                    placeholder="Expliquez la raison du refus..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-light" onclick="closeModal('modal-refuse')">Annuler</button>
+                <button class="btn btn-danger" onclick="confirmRefuse()">❌ Confirmer le refus</button>
+            </div>
+        </div>
+    </div>
+
+    <?!= include('isims-scripts') ?>
+
+    <script>
+        /* ─── Auth ──────────────────────────────────────────────────────── */
+        var session = requireAuth('admin');
+        if (!session) throw new Error('Not authenticated');
+        buildIsimsNav('admin-demandes', 'admin');
+
+        /* ─── State ─────────────────────────────────────────────────────── */
+        var allDemandes = [];
+        var allTemplates = [];
+        var allEmployees = [];
+        var currentDemandeId = null;   // used for refuse modal
+        var editingTemplateId = null;  // used for template edit mode
+        var customFieldsCount = 0;
+
+        /* ─── Tab switching ─────────────────────────────────────────────── */
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+            document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        /* ─── Boot ──────────────────────────────────────────────────────── */
+        document.addEventListener('DOMContentLoaded', function () {
+            loadEmployees();
+            loadDemandes();
+            loadTemplates();
+        });
+
+        /* ─── Employees ─────────────────────────────────────────────────── */
+        function loadEmployees() {
+            callServer('getEmployees', [], function (err, emps) {
+                if (err || !emps) return;
+                allEmployees = emps;
+                var sel = document.getElementById('new-emp-id');
+                sel.innerHTML = '<option value="">— Sélectionner un employé —</option>' +
+                    emps.map(function (e) {
+                        return '<option value="' + esc(e['ID']) + '">' + esc(e['Nom'] + ' ' + e['Prénom']) + ' (' + esc(e['Département']) + ')</option>';
+                    }).join('');
+            });
+        }
+
+        /* ─── Demandes list ─────────────────────────────────────────────── */
+        function loadDemandes() {
+            callServer('getAllDemandes', [], function (err, list) {
+                if (err || !list) { allDemandes = []; renderDemandes([]); return; }
+                allDemandes = list;
+                updateKpis(list);
+                populateTypeFilter(list);
+                renderDemandes(list);
+            });
+        }
+
+        function updateKpis(list) {
+            document.getElementById('k-total').textContent = list.length;
+            document.getElementById('k-pending').textContent = list.filter(function (d) { return d['Statut'] === 'En attente'; }).length;
+            document.getElementById('k-approved').textContent = list.filter(function (d) { return d['Statut'] === 'Approuvée'; }).length;
+            document.getElementById('k-refused').textContent = list.filter(function (d) { return d['Statut'] === 'Refusée'; }).length;
+        }
+
+        function populateTypeFilter(list) {
+            var types = [...new Set(list.map(function (d) { return d['Type']; }).filter(Boolean))].sort();
+            var sel = document.getElementById('filter-type');
+            sel.innerHTML = '<option value="">Tous les types</option>' +
+                types.map(function (t) { return '<option value="' + esc(t) + '">' + esc(t) + '</option>'; }).join('');
+        }
+
+        function filterDemandes() {
+            var q = (document.getElementById('search-demandes').value || '').toLowerCase();
+            var statut = document.getElementById('filter-statut').value;
+            var type = document.getElementById('filter-type').value;
+            var source = document.getElementById('filter-source').value;
+            var filtered = allDemandes.filter(function (d) {
+                var emp = (d['NomEmploye'] || d['Employé'] || '').toLowerCase();
+                var titre = (d['Titre'] || '').toLowerCase();
+                var matchQ = !q || emp.indexOf(q) !== -1 || titre.indexOf(q) !== -1;
+                var matchS = !statut || d['Statut'] === statut;
+                var matchT = !type || d['Type'] === type;
+                var matchSrc = !source || d['Source'] === source;
+                return matchQ && matchS && matchT && matchSrc;
+            });
+            renderDemandes(filtered);
+        }
+
+        function renderDemandes(list) {
+            var body = document.getElementById('demandes-list-body');
+            var lbl = document.getElementById('demandes-count-label');
+            if (lbl) lbl.textContent = list.length + ' demande(s) affichée(s)';
+            if (!list.length) {
+                body.innerHTML = '<div class="empty-state" style="padding:40px"><div class="icon">📭</div><p>Aucune demande trouvée</p></div>';
+                return;
+            }
+            body.innerHTML = list.map(function (d) {
+                var statut = d['Statut'] || 'En attente';
+                var pillCls = statut === 'Approuvée' ? 'pill-green' : statut === 'Refusée' ? 'pill-red' : statut === 'En cours' ? 'pill-blue' : 'pill-yellow';
+                var srcBadge = d['Source'] === 'admin'
+                    ? '<span style="font-size:10px;background:#ede9fe;color:#7c3aed;padding:2px 6px;border-radius:10px;font-weight:700">Admin</span>'
+                    : '<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:10px;font-weight:700">Employé</span>';
+                return '<div class="demande-row">' +
+                    '<div>' +
+                    '<div style="font-weight:700;font-size:13px">' + esc(d['Titre'] || '—') + '</div>' +
+                    '<div style="font-size:11px;color:var(--text-light,#94a3b8);margin-top:2px">' + esc(d['NomEmploye'] || d['Employé'] || '—') + '</div>' +
+                    '</div>' +
+                    '<div>' +
+                    '<span style="font-size:12px;background:var(--grey-100,#f3f4f6);padding:3px 8px;border-radius:6px">' + esc(d['Type'] || '—') + '</span>' +
+                    '</div>' +
+                    '<div style="font-size:12px;color:var(--text-light,#94a3b8)">' + fmtDate(d['Date'] || d['DateCreation']) + '</div>' +
+                    '<div>' + srcBadge + '</div>' +
+                    '<div><span class="pill ' + pillCls + '">' + esc(statut) + '</span></div>' +
+                    '<div style="display:flex;gap:5px">' +
+                    '<button class="btn btn-outline btn-sm" title="Voir détail" onclick="viewDemande(\'' + esc(d['ID']) + '\')">👁️</button>' +
+                    (statut === 'En attente'
+                        ? '<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0" title="Approuver" onclick="approveDemande(\'' + esc(d['ID']) + '\')">✅</button>' +
+                        '<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca" title="Refuser" onclick="openRefuseModal(\'' + esc(d['ID']) + '\')">❌</button>'
+                        : '') +
+                    '</div>' +
+                    '</div>';
+            }).join('');
+        }
+
+        /* ─── Demande actions ───────────────────────────────────────────── */
+        function viewDemande(id) {
+            var d = allDemandes.find(function (x) { return x['ID'] === id; });
+            if (!d) return;
+            var statut = d['Statut'] || 'En attente';
+            var pillCls = statut === 'Approuvée' ? 'pill-green' : statut === 'Refusée' ? 'pill-red' : statut === 'En cours' ? 'pill-blue' : 'pill-yellow';
+            document.getElementById('detail-modal-title').textContent = '📋 ' + (d['Titre'] || 'Détail demande');
+            document.getElementById('detail-modal-body').innerHTML =
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">' +
+                detailRow('👤 Employé', d['NomEmploye'] || d['Employé'] || '—') +
+                detailRow('📂 Type', d['Type'] || '—') +
+                detailRow('📅 Date soumission', fmtDate(d['Date'] || d['DateCreation'])) +
+                detailRow('⚡ Priorité', d['Priorité'] || 'Normale') +
+                detailRow('📅 Date début', fmtDate(d['DateDebut'])) +
+                detailRow('📅 Date fin', fmtDate(d['DateFin'])) +
+                '</div>' +
+                '<div style="margin-bottom:12px"><strong style="font-size:12px;color:var(--text-light,#94a3b8);text-transform:uppercase">Description</strong>' +
+                '<div style="margin-top:6px;font-size:13px;line-height:1.6;color:var(--grey-800,#1e293b);background:var(--grey-50,#f8fafc);padding:12px;border-radius:8px">' + esc(d['Description'] || '—') + '</div></div>' +
+                (d['NoteInterne'] ? '<div style="margin-bottom:12px;padding:10px 14px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:6px"><strong style="font-size:11px;color:#92400e">🔒 NOTE INTERNE</strong><div style="font-size:12px;margin-top:4px;color:#78350f">' + esc(d['NoteInterne']) + '</div></div>' : '') +
+                (d['MotifRefus'] ? '<div style="padding:10px 14px;background:#fee2e2;border-left:3px solid #dc2626;border-radius:6px"><strong style="font-size:11px;color:#991b1b">Motif de refus</strong><div style="font-size:12px;margin-top:4px;color:#7f1d1d">' + esc(d['MotifRefus']) + '</div></div>' : '') +
+                '<div style="margin-top:14px;display:flex;align-items:center;gap:8px">Statut actuel : <span class="pill ' + pillCls + '">' + esc(statut) + '</span></div>';
+
+            var footer = document.getElementById('detail-modal-footer');
+            footer.innerHTML = '<button class="btn btn-light" onclick="closeModal(\'modal-demande-detail\')">Fermer</button>';
+            if (statut === 'En attente') {
+                footer.innerHTML +=
+                    '<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0" onclick="closeModal(\'modal-demande-detail\');approveDemande(\'' + esc(id) + '\')">✅ Approuver</button>' +
+                    '<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca" onclick="closeModal(\'modal-demande-detail\');openRefuseModal(\'' + esc(id) + '\')">❌ Refuser</button>';
+            }
+            openModal('modal-demande-detail');
+        }
+
+        function detailRow(label, value) {
+            return '<div style="padding:10px;background:var(--grey-50,#f8fafc);border-radius:8px">' +
+                '<div style="font-size:10px;font-weight:700;color:var(--text-light,#94a3b8);text-transform:uppercase;margin-bottom:4px">' + label + '</div>' +
+                '<div style="font-size:13px;font-weight:600;color:var(--grey-800,#1e293b)">' + esc(String(value || '—')) + '</div>' +
+                '</div>';
+        }
+
+        function approveDemande(id) {
+            confirmAction('Approuver cette demande ?', function () {
+                callServer('updateDemandeStatut', [id, 'Approuvée', ''], function (err, res) {
+                    if (res && res.success) { showToast('Demande approuvée ✅', 'success'); loadDemandes(); }
+                    else showToast((res && res.message) || 'Erreur', 'error');
+                });
+            });
+        }
+
+        function openRefuseModal(id) {
+            currentDemandeId = id;
+            document.getElementById('refuse-reason').value = '';
+            openModal('modal-refuse');
+        }
+
+        function confirmRefuse() {
+            var reason = document.getElementById('refuse-reason').value.trim();
+            if (!reason) { showToast('Veuillez saisir un motif', 'error'); return; }
+            callServer('updateDemandeStatut', [currentDemandeId, 'Refusée', reason], function (err, res) {
+                if (res && res.success) { showToast('Demande refusée', 'info'); closeModal('modal-refuse'); loadDemandes(); }
+                else showToast((res && res.message) || 'Erreur', 'error');
+            });
+        }
+
+        /* ─── New demande submit ────────────────────────────────────────── */
+        function submitNewDemande() {
+            var empId = document.getElementById('new-emp-id').value;
+            var type = document.getElementById('new-type').value;
+            var title = document.getElementById('new-title').value.trim();
+            var desc = document.getElementById('new-desc').value.trim();
+            var dateS = document.getElementById('new-date-start').value;
+            var dateE = document.getElementById('new-date-end').value;
+            var prio = document.getElementById('new-priority').value;
+            var statut = document.getElementById('new-statut').value;
+            var note = document.getElementById('new-internal-note').value.trim();
+            var attach = document.getElementById('new-attachment').value.trim();
+
+            if (!empId) { showToast('Sélectionnez un employé', 'error'); return; }
+            if (!type) { showToast('Choisissez un type de demande', 'error'); return; }
+            if (!title) { showToast('Le titre est obligatoire', 'error'); return; }
+
+            // Collect dynamic fields
+            var extras = {};
+            document.querySelectorAll('#new-dynamic-fields [data-field-key]').forEach(function (el) {
+                extras[el.getAttribute('data-field-key')] = el.value;
+            });
+
+            var payload = {
+                employeId: empId,
+                type: type,
+                titre: title,
+                description: desc,
+                dateDebut: dateS,
+                dateFin: dateE,
+                priorite: prio,
+                statut: statut,
+                noteInterne: note,
+                pieceJointe: attach,
+                source: 'admin',
+                champsExtra: JSON.stringify(extras)
+            };
+
+            callServer('createAdminDemande', [payload], function (err, res) {
+                if (res && res.success) {
+                    showToast('Demande créée avec succès ✅', 'success');
+                    clearNewForm();
+                    loadDemandes();
+                    switchTab('tab-list', document.querySelectorAll('.tab-btn')[0]);
+                } else {
+                    showToast((res && res.message) || 'Erreur serveur', 'error');
+                }
+            });
+        }
+
+        function clearNewForm() {
+            ['new-emp-id', 'new-type', 'new-title', 'new-desc', 'new-date-start', 'new-date-end',
+                'new-priority', 'new-statut', 'new-internal-note', 'new-attachment', 'new-template-select'].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) { el.value = el.tagName === 'SELECT' ? '' : ''; }
+                });
+            document.getElementById('new-dynamic-fields').innerHTML = '';
+        }
+
+        function onTypeChange() { }  // hook for future use
+
+        function applyTemplate() {
+            var id = document.getElementById('new-template-select').value;
+            if (!id) return;
+            var tpl = allTemplates.find(function (t) { return String(t['ID']) === String(id); });
+            if (!tpl) return;
+
+            // Fill known fields
+            if (tpl['TypeDefaut']) document.getElementById('new-type').value = tpl['TypeDefaut'];
+            if (tpl['TitreDefaut']) document.getElementById('new-title').value = tpl['TitreDefaut'];
+            if (tpl['CorpsDefaut']) document.getElementById('new-desc').value = tpl['CorpsDefaut'];
+
+            // Render dynamic fields
+            var fields = [];
+            try { fields = JSON.parse(tpl['Champs'] || '[]'); } catch (e) { }
+            renderDynamicFields(fields, 'new-dynamic-fields');
+            showToast('Template appliqué : ' + tpl['Nom'], 'info');
+        }
+
+        function renderDynamicFields(fields, containerId) {
+            var wrap = document.getElementById(containerId);
+            if (!fields || !fields.length) { wrap.innerHTML = ''; return; }
+            wrap.innerHTML = '<div style="margin-bottom:14px;padding:12px;background:var(--grey-50,#f8fafc);border-radius:8px;border:1px dashed var(--grey-300,#d1d5db)">' +
+                '<div style="font-size:12px;font-weight:700;color:var(--grey-700,#374151);margin-bottom:10px">🔧 Champs du template</div>' +
+                fields.map(function (f) {
+                    var required = f.required ? ' *' : '';
+                    var inputHtml;
+                    if (f.type === 'textarea') {
+                        inputHtml = '<textarea class="input" data-field-key="' + esc(f.name) + '" rows="2" ' +
+                            (f.required ? 'required' : '') + '></textarea>';
+                    } else if (f.type === 'select' && f.options) {
+                        inputHtml = '<select class="input" data-field-key="' + esc(f.name) + '">' +
+                            f.options.map(function (o) { return '<option value="' + esc(o) + '">' + esc(o) + '</option>'; }).join('') +
+                            '</select>';
+                    } else if (f.type === 'date') {
+                        inputHtml = '<input type="date" class="input" data-field-key="' + esc(f.name) + '"' + (f.required ? 'required' : '') + '>';
+                    } else if (f.type === 'number') {
+                        inputHtml = '<input type="number" class="input" data-field-key="' + esc(f.name) + '"' + (f.required ? 'required' : '+') + '>';
+                    } else {
+                        inputHtml = '<input type="text" class="input" data-field-key="' + esc(f.name) + '" placeholder="' + esc(f.placeholder || '') + '"' + (f.required ? 'required' : '') + '>';
+                    }
+                    return '<div class="dynamic-field-wrap"><label>' + esc(f.label || f.name) + required + '</label>' + inputHtml + '</div>';
+                }).join('') +
+                '</div>';
+        }
+
+        /* ─── Templates ─────────────────────────────────────────────────── */
+        function loadTemplates() {
+            callServer('getDemandTemplates', [], function (err, list) {
+                allTemplates = list || [];
+                renderTemplatesGrid(allTemplates);
+                populateTemplateSelect(allTemplates);
+            });
+        }
+
+        function populateTemplateSelect(list) {
+            var sel = document.getElementById('new-template-select');
+            sel.innerHTML = '<option value="">— Sélectionner un template —</option>' +
+                list.map(function (t) {
+                    return '<option value="' + esc(t['ID']) + '">' + esc((t['Icone'] || '📋') + ' ' + t['Nom']) + '</option>';
+                }).join('');
+        }
+
+        function renderTemplatesGrid(list) {
+            var grid = document.getElementById('templates-grid');
+            if (!list.length) {
+                grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:40px"><div class="icon">📐</div>' +
+                    '<p>Aucun template pour l\'instant. Créez votre premier template !</p>' +
+                    '<button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openModal(\'modal-new-template\')">➕ Créer un template</button></div>';
+                return;
+            }
+            grid.innerHTML = list.map(function (t) {
+                var fields = [];
+                try { fields = JSON.parse(t['Champs'] || '[]'); } catch (e) { }
+                var visClass = t['Visibilite'] === 'shared' ? 'shared' : 'admin-only';
+                var visLabel = t['Visibilite'] === 'shared' ? 'Partagé' : 'Admin only';
+                return '<div class="template-card">' +
+                    '<span class="tc-badge ' + visClass + '">' + visLabel + '</span>' +
+                    '<span class="tc-icon">' + esc(t['Icone'] || '📋') + '</span>' +
+                    '<div class="tc-title">' + esc(t['Nom']) + '</div>' +
+                    '<div class="tc-desc">' + esc(t['Description'] || '—') + '</div>' +
+                    (t['TypeDefaut'] ? '<div style="margin-top:6px"><span style="font-size:10px;background:var(--grey-100,#f3f4f6);padding:2px 7px;border-radius:10px;color:var(--grey-700,#374151)">' + esc(t['TypeDefaut']) + '</span></div>' : '') +
+                    (fields.length ? '<div style="margin-top:6px;font-size:11px;color:var(--text-light,#94a3b8)">' + fields.length + ' champ(s) personnalisé(s)</div>' : '') +
+                    '<div class="tc-actions">' +
+                    '<button class="btn btn-primary btn-sm" onclick="useTemplate(\'' + esc(t['ID']) + '\')">➕ Utiliser</button>' +
+                    '<button class="btn btn-outline btn-sm" onclick="editTemplate(\'' + esc(t['ID']) + '\')">✏️ Modifier</button>' +
+                    '<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca" onclick="deleteTemplate(\'' + esc(t['ID']) + '\')">🗑️</button>' +
+                    '</div>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function useTemplate(id) {
+            // Switch to new demande tab and apply template
+            switchTab('tab-new', document.querySelectorAll('.tab-btn')[1]);
+            document.getElementById('new-template-select').value = id;
+            applyTemplate();
+            showToast('Template chargé dans le formulaire ✅', 'success');
+        }
+
+        function editTemplate(id) {
+            var t = allTemplates.find(function (x) { return String(x['ID']) === String(id); });
+            if (!t) return;
+            editingTemplateId = id;
+            document.getElementById('tpl-modal-title').textContent = '✏️ Modifier le template';
+            document.getElementById('tpl-name').value = t['Nom'] || '';
+            document.getElementById('tpl-type').value = t['TypeDefaut'] || '';
+            document.getElementById('tpl-icon').value = t['Icone'] || '';
+            document.getElementById('tpl-visibility').value = t['Visibilite'] || 'admin';
+            document.getElementById('tpl-desc').value = t['Description'] || '';
+            document.getElementById('tpl-default-title').value = t['TitreDefaut'] || '';
+            document.getElementById('tpl-default-body').value = t['CorpsDefaut'] || '';
+
+            // Restore fields
+            var fields = [];
+            try { fields = JSON.parse(t['Champs'] || '[]'); } catch (e) { }
+            document.getElementById('fields-builder-list').innerHTML = '';
+            customFieldsCount = 0;
+            fields.forEach(function (f) {
+                addFieldRow(f);
+            });
+
+            openModal('modal-new-template');
+        }
+
+        function deleteTemplate(id) {
+            confirmAction('Supprimer ce template définitivement ?', function () {
+                callServer('deleteDemandeTemplate', [id], function (err, res) {
+                    if (res && res.success) { showToast('Template supprimé', 'info'); loadTemplates(); }
+                    else showToast((res && res.message) || 'Erreur', 'error');
+                });
+            });
+        }
+
+        /* ─── Template builder ──────────────────────────────────────────── */
+        function addFieldRow(prefill) {
+            prefill = prefill || {};
+            var idx = ++customFieldsCount;
+            var row = document.createElement('div');
+            row.className = 'field-builder-row';
+            row.id = 'frow-' + idx;
+            row.innerHTML =
+                '<input class="input" placeholder="ex: Nombre de jours" value="' + esc(prefill.label || '') + '" id="fl-' + idx + '" oninput="updateFieldsPreview()">' +
+                '<select class="input" id="ft-' + idx + '" onchange="updateFieldsPreview()">' +
+                ['text', 'number', 'date', 'select', 'textarea'].map(function (t) {
+                    return '<option value="' + t + '" ' + (prefill.type === t ? 'selected' : '') + '>' + t + '</option>';
+                }).join('') +
+                '</select>' +
+                '<select class="input" id="fr-' + idx + '" onchange="updateFieldsPreview()">' +
+                '<option value="0" ' + (prefill.required ? '' : 'selected') + '>Non</option>' +
+                '<option value="1" ' + (prefill.required ? 'selected' : '') + '>Oui</option>' +
+                '</select>' +
+                '<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:4px 8px" onclick="removeFieldRow(' + idx + ')">✕</button>';
+            document.getElementById('fields-builder-list').appendChild(row);
+            updateFieldsPreview();
+        }
+
+        function removeFieldRow(idx) {
+            var el = document.getElementById('frow-' + idx);
+            if (el) el.remove();
+            updateFieldsPreview();
+        }
+
+        function updateFieldsPreview() {
+            var preview = document.getElementById('fields-preview');
+            var chips = '<span style="font-size:11px;color:var(--text-light,#94a3b8);margin-right:6px">Aperçu :</span>';
+            var hasAny = false;
+            document.querySelectorAll('#fields-builder-list .field-builder-row').forEach(function (row) {
+                var id = row.id.replace('frow-', '');
+                var label = (document.getElementById('fl-' + id) || {}).value || '';
+                var type = (document.getElementById('ft-' + id) || {}).value || 'text';
+                var req = (document.getElementById('fr-' + id) || {}).value === '1';
+                if (label.trim()) {
+                    hasAny = true;
+                    chips += '<span class="field-preview-chip">' + esc(label) + '<span style="opacity:.5;font-size:9px">' + type + (req ? ' *' : '') + '</span></span>';
+                }
+            });
+            preview.innerHTML = hasAny ? chips : '<span style="font-size:11px;color:var(--text-light,#94a3b8)">Aucun champ ajouté</span>';
+        }
+
+        function collectFields() {
+            var fields = [];
+            document.querySelectorAll('#fields-builder-list .field-builder-row').forEach(function (row) {
+                var id = row.id.replace('frow-', '');
+                var label = ((document.getElementById('fl-' + id) || {}).value || '').trim();
+                var type = (document.getElementById('ft-' + id) || {}).value || 'text';
+                var req = (document.getElementById('fr-' + id) || {}).value === '1';
+                if (label) {
+                    fields.push({ name: label.toLowerCase().replace(/\s+/g, '_'), label: label, type: type, required: req });
+                }
+            });
+            return fields;
+        }
+
+        function saveTemplate() {
+            var name = document.getElementById('tpl-name').value.trim();
+            if (!name) { showToast('Le nom du template est obligatoire', 'error'); return; }
+            var payload = {
+                id: editingTemplateId || '',
+                nom: name,
+                typeDefaut: document.getElementById('tpl-type').value,
+                icone: document.getElementById('tpl-icon').value || '📋',
+                visibilite: document.getElementById('tpl-visibility').value,
+                description: document.getElementById('tpl-desc').value.trim(),
+                titreDefaut: document.getElementById('tpl-default-title').value.trim(),
+                corpsDefaut: document.getElementById('tpl-default-body').value.trim(),
+                champs: JSON.stringify(collectFields())
+            };
+            var fn = editingTemplateId ? 'updateDemandeTemplate' : 'createDemandeTemplate';
+            callServer(fn, [payload], function (err, res) {
+                if (res && res.success) {
+                    showToast(editingTemplateId ? 'Template mis à jour ✅' : 'Template créé ✅', 'success');
+                    closeModal('modal-new-template');
+                    editingTemplateId = null;
+                    loadTemplates();
+                    // reset form
+                    ['tpl-name', 'tpl-type', 'tpl-icon', 'tpl-desc', 'tpl-default-title', 'tpl-default-body'].forEach(function (id) {
+                        var el = document.getElementById(id); if (el) el.value = '';
+                    });
+                    document.getElementById('fields-builder-list').innerHTML = '';
+                    updateFieldsPreview();
+                    customFieldsCount = 0;
+                } else {
+                    showToast((res && res.message) || 'Erreur', 'error');
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>
