@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RH Platform – Missions</title>
+  <?!= include('isims-styles') ?>
+  <style>
+    .smart-selector {
+      background: linear-gradient(135deg, #f0f7ff 0%, #e8f0fe 100%);
+      border: 2px solid var(--blue-main);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .smart-selector label {
+      font-weight: 700; font-size: 13px; color: var(--blue-main);
+      display: block; margin-bottom: 8px;
+    }
+    .mode-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700; margin-top:8px; text-transform:uppercase; }
+    .mode-badge.mode-new { background:#d1fae5; color:#065f46; }
+    .mode-badge.mode-edit { background:#fef3c7; color:#92400e; }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="loader-overlay" id="loader"><div class="spinner"></div><p>Chargement...</p></div>
+
+<header class="isims-header">
+  <div class="header-inner">
+    <a class="header-logo" href="?page=landing">
+      <div class="logo-mark">RH</div>
+      <div class="logo-text"><h1>RH Platform</h1><small>ADMINISTRATION</small></div>
+    </a>
+    <div class="header-spacer"></div>
+    <nav class="header-nav">
+      <a onclick="navigate('admin-dashboard')">📊 Dashboard</a>
+      <a onclick="navigate('employees')">👥 Employés</a>
+      <a class="active" onclick="navigate('missions')">🎯 Missions</a>
+      <a onclick="navigate('recommendation')">🤖 IA</a>
+    </nav>
+    <div class="header-user" id="header-user"></div>
+    <button class="btn btn-light btn-sm" style="margin-left:8px" onclick="doLogout()">🚪 Déconnexion</button>
+  </div>
+</header>
+
+<div class="sub-header">
+  <div class="sub-header-inner">
+    <span>Admin</span><span class="sep">›</span><span class="current">Missions</span>
+  </div>
+</div>
+
+<div class="page-layout">
+  <aside class="isims-sidebar">
+    <div class="sidebar-section-title">Navigation</div>
+    <div id="isims-sidebar-nav"></div>
+  </aside>
+
+  <div class="page-content">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 24px;">
+      <div>
+        <div class="page-title">🎯 Gestion des Missions</div>
+        <div class="page-subtitle">Créer et suivre les missions et projets</div>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <div class="search-wrap">
+          <input type="text" class="input" id="search-input" placeholder="Rechercher..." oninput="filterTable()" style="width:250px;">
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-add')">➕ Nouvelle mission</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card sc-blue"><div class="sc-icon">🎯</div><div class="sc-label">Total</div><div class="sc-value" id="s-total">–</div></div>
+      <div class="stat-card sc-orange"><div class="sc-icon">🔓</div><div class="sc-label">Ouvertes</div><div class="sc-value" id="s-open">–</div></div>
+      <div class="stat-card sc-green"><div class="sc-icon">⏳</div><div class="sc-label">En cours</div><div class="sc-value" id="s-enc">–</div></div>
+      <div class="stat-card sc-red"><div class="sc-icon">✅</div><div class="sc-label">Terminées</div><div class="sc-value" id="s-done">–</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div><h3>Liste des missions</h3><p id="mis-count">0 mission(s)</p></div>
+        <button class="btn btn-outline btn-sm" onclick="loadMissions()">🔄 Actualiser</button>
+      </div>
+      <div class="table-wrapper" style="padding: 0 22px 22px;">
+        <table>
+          <thead><tr><th>Titre</th><th>Département</th><th>Priorité</th><th>Statut</th><th>Compétences</th><th>Affecté à</th><th>Dates</th><th>Actions</th></tr></thead>
+          <tbody id="mis-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Add -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-header"><h3 id="modal-add-title">➕ Nouvelle mission</h3><button class="modal-close" onclick="closeModal('modal-add')">✕</button></div>
+
+    <!-- Smart Mission Selector -->
+    <div class="smart-selector">
+      <label>🔍 Choisir une mission ouverte à modifier, ou saisir une nouvelle</label>
+      <select class="input" id="mission-selector" onchange="onMissionSelected()">
+        <option value="">— Nouvelle mission —</option>
+      </select>
+      <span class="mode-badge mode-new" id="mission-mode-badge">✨ Nouvelle mission</span>
+    </div>
+
+    <input type="hidden" id="f-id">
+    <div class="form-grid">
+      <div class="form-group full"><label>Titre *</label><input class="input" id="f-titre" placeholder="Développement API REST"></div>
+      <div class="form-group full"><label>Description</label><textarea class="input" id="f-desc" placeholder="Détails de la mission..."></textarea></div>
+      <div class="form-group"><label>Département</label>
+        <select class="input" id="f-dept"><option>IT</option><option>Finance</option><option>Ressources Humaines</option><option>Marketing</option><option>Commercial</option><option>Logistique</option><option>Ingénierie</option></select>
+      </div>
+      <div class="form-group"><label>Priorité</label>
+        <select class="input" id="f-prio"><option>Normale</option><option>Haute</option><option>Faible</option></select>
+      </div>
+      <div class="form-group"><label>Date début</label><input class="input" id="f-debut" type="date"></div>
+      <div class="form-group"><label>Date fin</label><input class="input" id="f-fin" type="date"></div>
+      <div class="form-group"><label>Statut</label>
+        <select class="input" id="f-statut"><option>Ouverte</option><option>En cours</option><option>Terminée</option><option>Annulée</option></select>
+      </div>
+      <div class="form-group full"><label>Affecter à (Optionnel)</label>
+        <select class="input" id="f-emp"><option value="">— non affecté —</option></select>
+      </div>
+      <div class="form-group full"><label>Compétences requises (virgules)</label><input class="input" id="f-skills" placeholder="Python, Machine Learning, SQL..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-light" onclick="resetMissionForm(); closeModal('modal-add')">Annuler</button>
+      <button class="btn btn-primary" id="btn-submit-mission" onclick="submitAdd()">✅ Créer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Edit -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal">
+    <div class="modal-header"><h3>✏️ Modifier mission</h3><button class="modal-close" onclick="closeModal('modal-edit')">✕</button></div>
+    <input type="hidden" id="e-id">
+    <div class="form-grid">
+      <div class="form-group full"><label>Titre</label><input class="input" id="e-titre"></div>
+      <div class="form-group full"><label>Description</label><textarea class="input" id="e-desc"></textarea></div>
+      <div class="form-group"><label>Département</label>
+        <select class="input" id="e-dept"><option>IT</option><option>Finance</option><option>Ressources Humaines</option><option>Marketing</option><option>Commercial</option><option>Logistique</option><option>Ingénierie</option></select>
+      </div>
+      <div class="form-group"><label>Priorité</label>
+        <select class="input" id="e-prio"><option>Normale</option><option>Haute</option><option>Faible</option></select>
+      </div>
+      <div class="form-group"><label>Date début</label><input class="input" id="e-debut" type="date"></div>
+      <div class="form-group"><label>Date fin</label><input class="input" id="e-fin" type="date"></div>
+      <div class="form-group"><label>Statut</label>
+        <select class="input" id="e-statut"><option>Ouverte</option><option>En cours</option><option>Terminée</option><option>Annulée</option></select>
+      </div>
+      <div class="form-group full"><label>Compétences requises</label><input class="input" id="e-skills"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-light" onclick="closeModal('modal-edit')">Annuler</button>
+      <button class="btn btn-primary" onclick="submitEdit()">💾 Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Assign -->
+<div class="modal-overlay" id="modal-assign">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><h3>🤖 Affecter un employé</h3><button class="modal-close" onclick="closeModal('modal-assign')">✕</button></div>
+    <input type="hidden" id="a-missionId">
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Mission : <strong id="a-missionTitle"></strong></p>
+    <div class="form-group">
+      <label>Choisir un employé</label>
+      <select class="input" id="a-empId"><option value="">— sélectionner —</option></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-light" onclick="closeModal('modal-assign')">Annuler</button>
+      <button class="btn btn-success" onclick="submitAssign()">✅ Affecter</button>
+    </div>
+  </div>
+</div>
+
+<?!= include('isims-scripts') ?>
+<script>
+var session = requireAuth('admin');
+if(!session) throw new Error('Not authenticated');
+buildIsimsNav('missions', session.role);
+
+var allMissions=[], allEmployees=[], editingMissionId=null;
+
+function loadMissions() {
+  callServer('getMissions',[],function(err,data){
+    if(err) return;
+    allMissions=data||[];
+    renderTable(allMissions);
+    document.getElementById('s-total').textContent=allMissions.length;
+    document.getElementById('s-open').textContent=allMissions.filter(function(m){return m['Statut']==='Ouverte';}).length;
+    document.getElementById('s-enc').textContent=allMissions.filter(function(m){return m['Statut']==='En cours';}).length;
+    document.getElementById('s-done').textContent=allMissions.filter(function(m){return m['Statut']==='Terminée';}).length;
+    // Update smart selector with open missions
+    updateMissionSelector();
+  });
+  callServer('getEmployees',[],function(err,data){ 
+    if(!err) {
+      allEmployees=data||[];
+      var activeEmps = allEmployees.filter(function(e){return e['Statut']==='Actif';});
+      var sel = document.getElementById('f-emp');
+      if (sel) {
+        sel.innerHTML = '<option value="">— non affecté —</option>' + activeEmps.map(function(e){
+          return '<option value="'+esc(e['ID'])+'">'+esc(e['Nom']+' '+e['Prénom'])+' ('+esc(e['Département'])+')</option>';
+        }).join('');
+      }
+    }
+  });
+}
+
+// ── Smart Mission Selector ──────────────────────────────────
+
+function updateMissionSelector() {
+  var openMissions = allMissions.filter(function(m){ return m['Statut'] === 'Ouverte' || m['Statut'] === 'En cours'; });
+  var sel = document.getElementById('mission-selector');
+  sel.innerHTML = '<option value="">— Nouvelle mission —</option>' +
+    openMissions.map(function(m){
+      return '<option value="'+esc(m['ID'])+'">['+esc(m['Statut'])+'] '+esc(m['Titre'])+' — '+esc(m['Département'])+'</option>';
+    }).join('');
+}
+
+function onMissionSelected() {
+  var sel = document.getElementById('mission-selector');
+  var id = sel.value;
+  if (!id) {
+    resetMissionForm();
+    return;
+  }
+  var m = allMissions.find(function(x){ return x['ID'] === id; });
+  if (!m) return;
+  editingMissionId = m['ID'];
+  document.getElementById('f-id').value     = m['ID'];
+  document.getElementById('f-titre').value  = m['Titre']||'';
+  document.getElementById('f-desc').value   = m['Description']||'';
+  document.getElementById('f-dept').value   = m['Département']||'';
+  document.getElementById('f-prio').value   = m['Priorité']||'Normale';
+  document.getElementById('f-debut').value  = m['Date Début']||'';
+  document.getElementById('f-fin').value    = m['Date Fin']||'';
+  document.getElementById('f-statut').value = m['Statut']||'Ouverte';
+  document.getElementById('f-skills').value = m['Compétences Requises']||'';
+  // Mode: edit
+  document.getElementById('mission-mode-badge').textContent = '✏️ Modification de mission';
+  document.getElementById('mission-mode-badge').className   = 'mode-badge mode-edit';
+  document.getElementById('btn-submit-mission').textContent  = '💾 Mettre à jour';
+  document.getElementById('modal-add-title').textContent     = '✏️ Modifier la mission';
+}
+
+function resetMissionForm() {
+  editingMissionId = null;
+  document.getElementById('f-id').value     = '';
+  document.getElementById('f-titre').value  = '';
+  document.getElementById('f-desc').value   = '';
+  document.getElementById('f-skills').value = '';
+  document.getElementById('f-emp').value    = '';
+  document.getElementById('mission-selector').value          = '';
+  document.getElementById('mission-mode-badge').textContent  = '✨ Nouvelle mission';
+  document.getElementById('mission-mode-badge').className    = 'mode-badge mode-new';
+  document.getElementById('btn-submit-mission').textContent   = '✅ Créer';
+  document.getElementById('modal-add-title').textContent      = '➕ Nouvelle mission';
+}
+
+function renderTable(list) {
+  document.getElementById('mis-count').textContent=list.length+' mission(s)';
+  var tbody=document.getElementById('mis-tbody');
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">🎯</div><p>Aucune mission</p></div></td></tr>'; return; }
+  tbody.innerHTML=list.map(function(m){
+    var skills=(m['Compétences Requises']||'').split(',').slice(0,2).map(function(s){return s.trim() ? '<span class="skill-chip">'+esc(s.trim())+'</span>' : '';}).join(' ');
+    return '<tr>'+
+      '<td><strong>'+esc(m['Titre'])+'</strong><br><small style="color:var(--text-muted)">'+esc(m['ID'])+'</small></td>'+
+      '<td>'+esc(m['Département'])+'</td>'+
+      '<td>'+statusBadge(m['Priorité'])+'</td>'+
+      '<td>'+statusBadge(m['Statut'])+'</td>'+
+      '<td>'+skills+'</td>'+
+      '<td>'+(m['Employé Affecté']?'<span class="badge badge-green">'+esc(m['Employé Affecté'])+'</span>':'<span style="color:var(--text-muted);font-size:12px">Non affecté</span>')+'</td>'+
+      '<td style="font-size:11px">'+fmtDate(m['Date Début'])+'<br>→ '+fmtDate(m['Date Fin'])+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="btn btn-outline btn-sm" title="Modifier" onclick="editMission(\''+esc(m['ID'])+'\')">✏️</button> '+
+        '<button class="btn btn-success btn-sm" title="Affecter" onclick="openAssign(\''+esc(m['ID'])+'\',\''+esc(m['Titre'])+'\')">👤</button> '+
+        '<button class="btn btn-danger btn-sm" title="Supprimer" onclick="deleteMis(\''+esc(m['ID'])+'\')">🗑️</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+}
+
+function filterTable(){
+  var q=document.getElementById('search-input').value.toLowerCase();
+  renderTable(allMissions.filter(function(m){return (m['Titre']+m['Département']+m['Statut']).toLowerCase().indexOf(q)!==-1;}));
+}
+
+function submitAdd(){
+  var data={
+    titre    : document.getElementById('f-titre').value.trim(),
+    description : document.getElementById('f-desc').value,
+    departement : document.getElementById('f-dept').value,
+    priorite    : document.getElementById('f-prio').value,
+    dateDebut   : document.getElementById('f-debut').value,
+    dateFin     : document.getElementById('f-fin').value,
+    statut      : document.getElementById('f-statut').value,
+    competencesRequises : document.getElementById('f-skills').value,
+    employeAffecteId    : document.getElementById('f-emp').value
+  };
+  if(!data.titre){showToast('Titre obligatoire','error');return;}
+
+  if (editingMissionId) {
+    // UPDATE existing mission
+    callServer('updateMission',[editingMissionId, data],function(err,res){
+      if(res&&res.success){
+        showToast('Mission mise à jour ✅','success');
+        closeModal('modal-add');
+        resetMissionForm();
+        loadMissions();
+      }else showToast((res&&res.message)||'Erreur','error');
+    });
+  } else {
+    // ADD new mission
+    callServer('addMission',[data],function(err,res){
+      if(res&&res.success){
+        showToast('Mission créée ✅','success');
+        closeModal('modal-add');
+        resetMissionForm();
+        loadMissions();
+      }else showToast((res&&res.message)||'Erreur','error');
+    });
+  }
+}
+
+function editMission(id){
+  var m=allMissions.find(function(x){return x['ID']===id;});
+  if(!m) return;
+  document.getElementById('e-id').value=m['ID'];
+  document.getElementById('e-titre').value=m['Titre'];
+  document.getElementById('e-desc').value=m['Description'];
+  document.getElementById('e-dept').value=m['Département'];
+  document.getElementById('e-prio').value=m['Priorité'];
+  document.getElementById('e-debut').value=m['Date Début'];
+  document.getElementById('e-fin').value=m['Date Fin'];
+  document.getElementById('e-statut').value=m['Statut'];
+  document.getElementById('e-skills').value=m['Compétences Requises'];
+  openModal('modal-edit');
+}
+
+function submitEdit(){
+  var id=document.getElementById('e-id').value;
+  var data={titre:document.getElementById('e-titre').value,description:document.getElementById('e-desc').value,departement:document.getElementById('e-dept').value,priorite:document.getElementById('e-prio').value,dateDebut:document.getElementById('e-debut').value,dateFin:document.getElementById('e-fin').value,statut:document.getElementById('e-statut').value,competencesRequises:document.getElementById('e-skills').value};
+  callServer('updateMission',[id,data],function(err,res){if(res&&res.success){showToast('Mission mise à jour ✅','success');closeModal('modal-edit');loadMissions();}else showToast('Erreur','error');});
+}
+
+function deleteMis(id){
+  confirmAction('Supprimer cette mission ?',function(){callServer('deleteMission',[id],function(err,res){if(res&&res.success){showToast('Supprimée','info');loadMissions();}});});
+}
+
+function openAssign(missionId, missionTitle){
+  document.getElementById('a-missionId').value=missionId;
+  document.getElementById('a-missionTitle').textContent=missionTitle;
+  var sel=document.getElementById('a-empId');
+  sel.innerHTML='<option value="">— sélectionner —</option>'+allEmployees.filter(function(e){return e['Statut']==='Actif';}).map(function(e){return '<option value="'+esc(e['ID'])+'">'+esc(e['Nom']+' '+e['Prénom'])+' ('+esc(e['Département'])+')</option>';}).join('');
+  openModal('modal-assign');
+}
+
+function submitAssign(){
+  var mId=document.getElementById('a-missionId').value;
+  var eId=document.getElementById('a-empId').value;
+  if(!eId){showToast('Sélectionnez un employé','error');return;}
+  callServer('assignEmployeeToMission',[mId,eId],function(err,res){if(res&&res.success){showToast('Employé affecté ✅','success');closeModal('modal-assign');loadMissions();}else showToast((res&&res.message)||'Erreur','error');});
+}
+
+loadMissions();
+</script>
+</body>
+</html>

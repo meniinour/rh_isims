@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RH Platform – Mon Espace</title>
+  <?!= include('isims-styles') ?>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="loader-overlay" id="loader"><div class="spinner"></div><p>Chargement...</p></div>
+
+<!-- Header -->
+<header class="isims-header">
+  <div class="header-inner">
+    <a class="header-logo" href="?page=landing">
+      <div class="logo-mark">RH</div>
+      <div class="logo-text"><h1>RH Platform</h1><small>ESPACE EMPLOYÉ</small></div>
+    </a>
+    <div class="header-spacer"></div>
+    <nav class="header-nav">
+      <a onclick="navigate('emp-dashboard')">🏠 Accueil</a>
+      <a onclick="navigate('tasks-page')">📋 Mes tâches</a>
+      <a onclick="navigate('absences')">📅 Absences</a>
+    </nav>
+    <div class="header-user" id="header-user" onclick="navigate('emp-dashboard')"></div>
+    <button class="btn btn-light btn-sm" style="margin-left:8px" onclick="doLogout()">🚪 Déconnexion</button>
+  </div>
+</header>
+
+<!-- Sub-header -->
+<div class="sub-header">
+  <div class="sub-header-inner">
+    <span>🏠 Accueil</span><span class="sep">›</span>
+    <span class="current">Mon tableau de bord</span>
+  </div>
+</div>
+
+<div class="page-layout">
+  <!-- Sidebar -->
+  <aside class="isims-sidebar">
+    <div class="sidebar-section-title">Navigation</div>
+    <div id="isims-sidebar-nav"></div>
+    <div class="sidebar-section-title">Compte</div>
+    <button class="sidebar-item" onclick="openModal('modal-pwd')"><span class="s-icon">🔑</span><span>Changer mot de passe</span></button>
+    <button class="sidebar-item" style="color:var(--red)" onclick="doLogout()"><span class="s-icon">🚪</span><span>Déconnexion</span></button>
+  </aside>
+
+  <!-- Content -->
+  <div class="page-content">
+    <!-- Profile banner -->
+    <div style="background:var(--blue-ultra);border:1px solid var(--blue-pale);border-radius:var(--radius);padding:28px 32px;color:var(--blue-dark);margin-bottom:22px;display:flex;align-items:center;gap:24px">
+      <div style="width:70px;height:70px;border-radius:50%;background:white;border:3px solid var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;font-family:'Poppins',sans-serif;color:var(--blue-main)" id="emp-avatar">?</div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--blue-mid);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Employé</div>
+        <div style="font-size:24px;font-weight:800;font-family:'Poppins',sans-serif;color:var(--grey-900)" id="emp-fullname">Chargement...</div>
+        <div style="font-size:13px;color:var(--text-light);margin-top:4px" id="emp-meta">—</div>
+      </div>
+      <div style="text-align:right">
+        <div id="emp-statut"></div>
+        <div style="font-size:12px;color:var(--text-light);margin-top:6px">CIN: <strong id="emp-cin">—</strong></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card sc-blue"><div class="sc-icon">📋</div><div class="sc-label">Tâches assignées</div><div class="sc-value" id="st-tasks">–</div><div class="sc-sub">missions actives</div></div>
+      <div class="stat-card sc-green"><div class="sc-icon">🎓</div><div class="sc-label">Compétences</div><div class="sc-value" id="st-skills">–</div><div class="sc-sub">enregistrées</div></div>
+      <div class="stat-card sc-orange"><div class="sc-icon">📅</div><div class="sc-label">Absences</div><div class="sc-value" id="st-abs">–</div><div class="sc-sub">cette année</div></div>
+      <div class="stat-card sc-red"><div class="sc-icon">⏳</div><div class="sc-label">En attente</div><div class="sc-value" id="st-pend">–</div><div class="sc-sub">demandes absences</div></div>
+    </div>
+
+    <!-- Skills section -->
+    <div class="card">
+      <div class="card-header">
+        <div><h3>🎓 Mes compétences</h3><p>Vos compétences enregistrées dans le système</p></div>
+        <button class="btn btn-primary btn-sm" onclick="navigate('skills-form')">➕ Gérer mes compétences</button>
+      </div>
+      <div class="card-body" id="skills-section">
+        <div class="empty-state" id="no-skills" style="display:none">
+          <div class="icon">🎓</div>
+          <h4>Aucune compétence enregistrée</h4>
+          <p>Renseignez vos compétences pour que le système puisse vous proposer des missions adaptées.</p>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="navigate('skills-form')">➕ Ajouter mes compétences</button>
+        </div>
+        <div id="skills-chips"></div>
+      </div>
+    </div>
+
+    <!-- Assigned missions -->
+    <div class="card">
+      <div class="card-header">
+        <div><h3>🎯 Missions assignées</h3><p>Vos missions en cours</p></div>
+        <button class="btn btn-outline btn-sm" onclick="navigate('tasks-page')">Voir toutes →</button>
+      </div>
+      <div class="card-body">
+        <div id="my-missions">
+          <div class="empty-state"><div class="icon">🎯</div><p>Aucune mission assignée</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent absences -->
+    <div class="card">
+      <div class="card-header">
+        <div><h3>📅 Mes absences récentes</h3></div>
+        <button class="btn btn-outline btn-sm" onclick="navigate('absences')">Demander une absence →</button>
+      </div>
+      <div class="card-body">
+        <div id="my-absences">
+          <div class="empty-state"><div class="icon">📅</div><p>Aucune absence enregistrée</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Change password -->
+<div class="modal-overlay" id="modal-pwd">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><h3>🔑 Changer le mot de passe</h3><button class="modal-close" onclick="closeModal('modal-pwd')">✕</button></div>
+    <div class="form-group" style="margin-bottom:14px"><label>Ancien mot de passe</label><input class="input" type="password" id="old-pwd"></div>
+    <div class="form-group" style="margin-bottom:14px"><label>Nouveau mot de passe</label><input class="input" type="password" id="new-pwd"></div>
+    <div class="form-group"><label>Confirmer nouveau mot de passe</label><input class="input" type="password" id="conf-pwd"></div>
+    <div class="modal-footer">
+      <button class="btn btn-light" onclick="closeModal('modal-pwd')">Annuler</button>
+      <button class="btn btn-primary" onclick="changePwd()">💾 Modifier</button>
+    </div>
+  </div>
+</div>
+
+<?!= include('isims-scripts') ?>
+<script>
+var session = requireAuth('employee');
+if(!session) throw new Error('Not authenticated');
+
+buildIsimsNav('emp-dashboard', 'employee');
+
+var empData = null;
+
+function loadProfile(){
+  // Populate header from session
+  document.getElementById('emp-cin').textContent = session.cin || '–';
+  document.getElementById('emp-fullname').textContent = (session.nom||'')+' '+(session.prenom||'');
+  var initials = ((session.nom||'?')[0]+((session.prenom||'')[0]||'')).toUpperCase();
+  document.getElementById('emp-avatar').textContent = initials;
+
+  // Get full employee data
+  callServer('getEmployeeByCIN', [session.cin], function(err, emp){
+    if(err || !emp) return;
+    empData = emp;
+    document.getElementById('emp-meta').textContent = (emp['Poste']||'–') + ' · ' + (emp['Département']||'–') + ' · ' + (emp['Email']||'');
+    document.getElementById('emp-statut').innerHTML = statusBadge(emp['Statut']||'Actif');
+
+    // Skills
+    var skills = (emp['Compétences']||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+    document.getElementById('st-skills').textContent = skills.length;
+    if(!skills.length){
+      document.getElementById('no-skills').style.display = 'block';
+      document.getElementById('skills-chips').innerHTML = '';
+    } else {
+      document.getElementById('no-skills').style.display = 'none';
+      document.getElementById('skills-chips').innerHTML = skills.map(function(s){
+        return '<span class="skill-chip">'+esc(s)+'</span>';
+      }).join('');
+    }
+
+    // Missions
+    callServer('getMissions',[],function(err2, missions){
+      if(err2||!missions) return;
+      var mine = missions.filter(function(m){
+        return (m['Employé Affecté']||'').indexOf(emp['Nom'])!==-1 && m['Statut']==='En cours';
+      });
+      document.getElementById('st-tasks').textContent = mine.length;
+      if(mine.length){
+        document.getElementById('my-missions').innerHTML = mine.map(function(m){
+          return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--grey-100)">'+
+            '<div style="flex:1"><strong>'+esc(m['Titre'])+'</strong><div style="font-size:12px;color:var(--text-light);margin-top:2px">'+esc(m['Département'])+' · '+fmtDate(m['Date Fin'])+'</div></div>'+
+            statusBadge(m['Priorité'])+
+          '</div>';
+        }).join('');
+      }
+    });
+
+    // Absences
+    callServer('getAbsences',[],function(err3, abs){
+      if(err3||!abs) return;
+      var mine = abs.filter(function(a){return a['Employé ID']===emp['ID'];});
+      var pending = mine.filter(function(a){return a['Statut']==='En attente';});
+      document.getElementById('st-abs').textContent = mine.length;
+      document.getElementById('st-pend').textContent = pending.length;
+      if(mine.length){
+        var recent = mine.slice(-5).reverse();
+        document.getElementById('my-absences').innerHTML = '<div class="table-wrapper"><table><thead><tr><th>Type</th><th>Début</th><th>Fin</th><th>Durée</th><th>Statut</th></tr></thead><tbody>'+
+          recent.map(function(a){
+            return '<tr><td>'+esc(a['Type'])+'</td><td>'+fmtDate(a['Date Début'])+'</td><td>'+fmtDate(a['Date Fin'])+'</td><td>'+esc(a['Durée (jours)'])+' j</td><td>'+statusBadge(a['Statut'])+'</td></tr>';
+          }).join('')+'</tbody></table></div>';
+      }
+    });
+  });
+}
+
+function changePwd(){
+  var old=document.getElementById('old-pwd').value;
+  var nw=document.getElementById('new-pwd').value;
+  var cf=document.getElementById('conf-pwd').value;
+  if(!old||!nw){showToast('Remplissez tous les champs','error');return;}
+  if(nw!==cf){showToast('Les mots de passe ne correspondent pas','error');return;}
+  if(nw.length<6){showToast('Le mot de passe doit faire au moins 6 caractères','error');return;}
+  callServer('changePassword',[session.cin,old,nw],function(err,res){
+    if(res&&res.success){showToast('Mot de passe modifié ✅','success');closeModal('modal-pwd');}
+    else showToast((res&&res.message)||'Erreur','error');
+  });
+}
+
+loadProfile();
+</script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!-- 
+  ============================================================
+  PRINT TEMPLATES (Arabic / French)
+  ============================================================
+-->
+<div id="print-templates" style="display:none">
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Template: Leave Request (Arabic) -->
+  <div id="tpl-leave-ar" class="print-page">
+    <style>
+      .print-page {
+        font-family: 'Amiri', serif;
+        direction: rtl;
+        padding: 40px;
+        color: #000;
+        background: #fff;
+        line-height: 1.8;
+      }
+
+      .p-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 40px;
+      }
+
+      .p-header .left {
+        text-align: right;
+      }
+
+      .p-header .right {
+        text-align: left;
+      }
+
+      .p-title {
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 30px;
+        text-decoration: underline;
+      }
+
+      .p-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .p-label {
+        font-weight: bold;
+        min-width: 150px;
+      }
+
+      .p-value {
+        flex: 1;
+        border-bottom: 1px dotted #333;
+        padding: 0 10px;
+      }
+
+      .p-check-group {
+        display: flex;
+        gap: 20px;
+        margin: 20px 0;
+      }
+
+      .p-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .p-box {
+        width: 18px;
+        height: 18px;
+        border: 1px solid #000;
+      }
+
+      .p-footer {
+        margin-top: 60px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        text-align: center;
+      }
+
+      @media print {
+        .print-page {
+          display: block !important;
+        }
+      }
+    </style>
+
+    <div class="p-header">
+      <div class="left">
+        الجمهورية التونسية<br>
+        وزارة التعليم العالي<br>
+        والبحث العلمي
+      </div>
+      <div class="right">
+        المعهد العالي للإعلامية<br>
+        والملتيميديا بصفاقس
+      </div>
+    </div>
+
+    <div class="p-title">مطلب عطلة (1)</div>
+
+    <div class="p-check-group">
+      <div class="p-check">
+        <div class="p-box"></div> عطلة استراحة سنوية
+      </div>
+      <div class="p-check">
+        <div class="p-box"></div> عطلة استثنائية موجبة
+      </div>
+      <div class="p-check">
+        <div class="p-box"></div> عطلة لأسباب صحية
+      </div>
+      <div class="p-check">
+        <div class="p-box"></div> عطلة تعويضية
+      </div>
+    </div>
+
+    <div class="p-row">
+      <div class="p-label">المعرف الوحيد :</div>
+      <div class="p-value">{{cin}}</div>
+    </div>
+    <div class="p-row">
+      <div class="p-label">الاسم واللقب :</div>
+      <div class="p-value">{{nom}} {{prenom}}</div>
+    </div>
+    <div class="p-row">
+      <div class="p-label">الرتبة أو الصنف :</div>
+      <div class="p-value">{{poste}}</div>
+    </div>
+    <div class="p-row">
+      <div class="p-label">الهيكل الإداري :</div>
+      <div class="p-value">{{departement}}</div>
+    </div>
+    <div class="p-row">
+      <div class="p-label">المدة المطلوبة :</div>
+      <div class="p-value">من {{debut}} إلى {{fin}}</div>
+    </div>
+    <div class="p-row">
+      <div class="p-label">عنوان مقر السكنى طيلة العطلة :</div>
+      <div class="p-value">................................................</div>
+    </div>
+
+    <div style="margin-top:40px">بـ صفاقس، في: {{date_today}}</div>
+
+    <div class="p-footer">
+      <div>إمضاء طالب العطلة</div>
+      <div>الكاتب العام</div>
+    </div>
+  </div>
+
+  <!-- Template: Work Resumption (Arabic) -->
+  <div id="tpl-resumption-ar" class="print-page">
+    <div class="p-header">
+      <div class="left">الجمهورية التونسية<br>وزارة التعليم العالي</div>
+      <div class="right">جامعة صفاقس<br>المعهد العالي للإعلامية والملتيميديا</div>
+    </div>
+    <div class="p-title">إعلام بمباشرة العمل</div>
+    <div class="p-row">
+      <div class="p-label">المعرف الوحيد :</div>
+      <div class="p-value">{{cin}}</div>
+    </div>
+    <div class="p-row">
+      <div class="p-label">الاسم و اللقب :</div>
+      <div class="p-value">{{nom}} {{prenom}}</div>
+    </div>
+    <div class="p-row">
+      <div class="p-label">الرتبة أو الصنف :</div>
+      <div class="p-value">{{poste}}</div>
+    </div>
+    <div class="p-row">
+      <div class="p-label">تاريخ الانقطاع عن العمل :</div>
+      <div class="p-value">{{debut}}</div>
+    </div>
+    <div class="p-row">
+      <div class="p-label">باشر(ت) عمله(ها) بتاريخ :</div>
+      <div class="p-value">{{fin}}</div>
+    </div>
+    <div class="p-footer">
+      <div>إمضاء العون</div>
+      <div>إمضاء الرئيس المباشر</div>
+    </div>
+  </div>
+
+</div>

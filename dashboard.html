@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RH Platform – Tableau de bord</title>
+  <?!= include('styles') ?>
+</head>
+<body>
+
+<!-- Loader -->
+<div class="loader-overlay" id="loader">
+  <div class="spinner"></div>
+  <p style="color:var(--text-muted);font-size:13px;">Chargement...</p>
+</div>
+
+<!-- Toasts -->
+<div id="toast-container"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="icon">🏢</div>
+    <div><h1>RH Platform</h1><small>v1.0 – Tableau de bord</small></div>
+  </div>
+  <nav class="sidebar-nav" id="sidebar-nav"></nav>
+  <div class="sidebar-footer">© 2025 RH Platform</div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <h2>📊 Tableau de bord</h2>
+      <p class="subtitle">Vue d'ensemble des ressources humaines</p>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" onclick="loadDashboard()">🔄 Actualiser</button>
+      <button class="btn btn-primary btn-sm" onclick="navigate('employees')">➕ Ajouter employé</button>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card"><div class="glow" style="background:#6c63ff"></div><div class="stat-icon">👥</div><div class="label">Total Employés</div><div class="value" id="kpi-total">–</div><div class="change" id="kpi-active"></div></div>
+    <div class="stat-card"><div class="glow" style="background:#00d4aa"></div><div class="stat-icon">🎯</div><div class="label">Missions actives</div><div class="value" id="kpi-missions">–</div><div class="change" id="kpi-open"></div></div>
+    <div class="stat-card"><div class="glow" style="background:#ff6b6b"></div><div class="stat-icon">📅</div><div class="label">Absences en attente</div><div class="value" id="kpi-absences">–</div><div class="change" id="kpi-pending"></div></div>
+    <div class="stat-card"><div class="glow" style="background:#ffd166"></div><div class="stat-icon">📂</div><div class="label">Documents traités</div><div class="value" id="kpi-docs">–</div><div class="change" style="color:var(--accent-4)">Depuis Drive</div></div>
+  </div>
+
+  <!-- Charts row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+
+    <!-- Departments -->
+    <div class="card">
+      <div class="card-header"><div><h3>👥 Employés par département</h3><p>Répartition actuelle</p></div></div>
+      <div id="dept-chart"><div class="empty-state"><div class="icon">⏳</div><p>Chargement...</p></div></div>
+    </div>
+
+    <!-- Absence types -->
+    <div class="card">
+      <div class="card-header"><div><h3>📅 Types d'absences</h3><p>Distribution globale</p></div></div>
+      <div id="abs-chart"><div class="empty-state"><div class="icon">⏳</div><p>Chargement...</p></div></div>
+    </div>
+  </div>
+
+  <!-- Recent activity -->
+  <div class="card">
+    <div class="card-header">
+      <div><h3>🕒 Activité récente</h3><p>Dernières actions enregistrées</p></div>
+      <button class="btn btn-outline btn-sm" onclick="navigate('missions')">Voir toutes les missions →</button>
+    </div>
+    <div id="recent-missions"><div class="empty-state"><div class="icon">🎯</div><p>Aucune mission en cours</p></div></div>
+  </div>
+
+</main>
+
+<?!= include('scripts') ?>
+<script>
+  buildSidebar('dashboard');
+
+  function loadDashboard() {
+    callServer('getDashboardStats', [], function(err, stats) {
+      if (err || !stats) return;
+
+      // KPIs
+      document.getElementById('kpi-total').textContent    = stats.totalEmployees || 0;
+      document.getElementById('kpi-active').textContent   = '✅ ' + (stats.activeEmployees||0) + ' actifs';
+      document.getElementById('kpi-missions').textContent = stats.totalMissions || 0;
+      document.getElementById('kpi-open').textContent     = '▶️ ' + (stats.openMissions||0) + ' ouvertes';
+      document.getElementById('kpi-absences').textContent = stats.totalAbsences || 0;
+      document.getElementById('kpi-pending').textContent  = '⏳ ' + (stats.pendingAbsences||0) + ' en attente';
+
+      // Dept chart
+      var deptEl = document.getElementById('dept-chart');
+      var dept = stats.deptBreakdown || {};
+      var keys = Object.keys(dept);
+      if (!keys.length) { deptEl.innerHTML = '<div class="empty-state"><p>Aucune donnée</p></div>'; }
+      else {
+        var max = Math.max.apply(null, keys.map(function(k){ return dept[k]; }));
+        var colors = ['#6c63ff','#00d4aa','#ff6b6b','#ffd166','#a78bfa','#34d399'];
+        deptEl.innerHTML = keys.map(function(k, i) {
+          var pct = Math.round((dept[k]/max)*100);
+          return '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span>'+esc(k)+'</span><span style="color:'+colors[i%colors.length]+';font-weight:700">'+dept[k]+'</span></div>'+miniBar(pct, colors[i%colors.length])+'</div>';
+        }).join('');
+      }
+
+      // Absence types chart
+      var absEl = document.getElementById('abs-chart');
+      var abs = stats.absenceTypes || {};
+      var akeys = Object.keys(abs);
+      if (!akeys.length) { absEl.innerHTML = '<div class="empty-state"><p>Aucune absence</p></div>'; }
+      else {
+        var amax = Math.max.apply(null, akeys.map(function(k){ return abs[k]; }));
+        absEl.innerHTML = akeys.map(function(k, i) {
+          var pct = Math.round((abs[k]/amax)*100);
+          var clrs = ['#ff6b6b','#ffd166','#00d4aa','#6c63ff'];
+          return '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span>'+esc(k)+'</span><span style="color:'+clrs[i%clrs.length]+';font-weight:700">'+abs[k]+'</span></div>'+miniBar(pct, clrs[i%clrs.length])+'</div>';
+        }).join('');
+      }
+    });
+
+    // Recent missions
+    callServer('getMissions', [], function(err, missions) {
+      if (err || !missions) return;
+      var el = document.getElementById('recent-missions');
+      var active = missions.filter(function(m){ return m['Statut']==='En cours'||m['Statut']==='Ouverte'; }).slice(0,5);
+      if (!active.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🎯</div><p>Aucune mission en cours</p></div>'; return; }
+      el.innerHTML = '<div class="table-wrapper"><table><thead><tr><th>Titre</th><th>Département</th><th>Priorité</th><th>Statut</th><th>Affecté à</th></tr></thead><tbody>' +
+        active.map(function(m){
+          return '<tr><td><strong>'+esc(m['Titre'])+'</strong></td><td>'+esc(m['Département'])+'</td><td>'+statusBadge(m['Priorité'])+'</td><td>'+statusBadge(m['Statut'])+'</td><td>'+esc(m['Employé Affecté']||'–')+'</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    });
+
+    // Docs count
+    callServer('getDocuments', [], function(err, docs) {
+      if (docs) document.getElementById('kpi-docs').textContent = docs.length || 0;
+    });
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RH Platform – Mes Compétences</title>
+  <?!= include('isims-styles') ?>
+  <style>
+    .skill-tag {
+      display:inline-flex; align-items:center; gap:6px;
+      background:var(--blue-pale); color:var(--blue-main);
+      border:1px solid var(--blue-pale); border-radius:99px;
+      padding:5px 12px; font-size:12px; font-weight:600; margin:4px;
+    }
+    .skill-tag .rm { cursor:pointer; opacity:.6; transition:.2s; font-size:14px; }
+    .skill-tag .rm:hover { opacity:1; color:var(--red); }
+    .level-btn {
+      padding:7px 16px; border-radius:99px; border:1.5px solid var(--grey-200);
+      background:white; cursor:pointer; font-size:12.5px; font-weight:600;
+      color:var(--text-light); transition:all .2s; font-family:'Inter',sans-serif;
+    }
+    .level-btn.active { border-color:var(--blue-main); background:var(--blue-pale); color:var(--blue-main); }
+    .suggest-chip {
+      display:inline-block; padding:5px 12px; border-radius:99px;
+      border:1.5px dashed var(--grey-300); background:white;
+      font-size:12px; font-weight:500; color:var(--text-light);
+      cursor:pointer; margin:3px; transition:all .2s;
+    }
+    .suggest-chip:hover { border-color:var(--blue-main); color:var(--blue-main); background:var(--blue-pale); }
+    .score-pill {
+      display:inline-flex; align-items:center; gap:5px;
+      background:var(--grey-100); border-radius:99px;
+      padding:4px 12px; font-size:12px; font-weight:600;
+    }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="loader-overlay" id="loader"><div class="spinner"></div><p>Chargement...</p></div>
+
+<header class="isims-header">
+  <div class="header-inner">
+    <a class="header-logo" href="?page=landing">
+      <div class="logo-mark">RH</div>
+      <div class="logo-text"><h1>RH Platform</h1><small>COMPÉTENCES</small></div>
+    </a>
+    <div class="header-spacer"></div>
+    <div class="header-user" id="header-user"></div>
+    <button class="btn btn-light btn-sm" style="margin-left:8px" onclick="doLogout()">🚪</button>
+  </div>
+</header>
+
+<div class="sub-header">
+  <div class="sub-header-inner">
+    <span onclick="navigate(session&&session.role==='admin'?'admin-dashboard':'emp-dashboard')" style="cursor:pointer;color:var(--blue-main)">🏠 Accueil</span>
+    <span class="sep">›</span><span class="current">🎓 Mes compétences</span>
+  </div>
+</div>
+
+<div class="page-layout">
+  <aside class="isims-sidebar">
+    <div class="sidebar-section-title">Navigation</div>
+    <div id="isims-sidebar-nav"></div>
+  </aside>
+
+  <div class="page-content">
+    <div class="page-title">🎓 Gestion des compétences</div>
+    <div class="page-subtitle">Ajoutez et mettez à jour vos compétences professionnelles</div>
+
+    <!-- Current skills -->
+    <div class="card">
+      <div class="card-header">
+        <div><h3>📋 Compétences actuelles</h3><p id="skills-count">0 compétence(s) enregistrée(s)</p></div>
+        <button class="btn btn-outline btn-sm" onclick="loadCurrentSkills()">🔄 Actualiser</button>
+      </div>
+      <div class="card-body">
+        <div id="current-skills-empty" style="display:none">
+          <div style="background:#fff8e1;border:1px solid #ffc107;border-radius:var(--radius-xs);padding:14px 16px;display:flex;gap:12px;align-items:center;margin-bottom:16px">
+            <span style="font-size:20px">⚠️</span>
+            <div><strong style="color:#856404">Aucune compétence enregistrée</strong><br><small style="color:#856404">Le système ne pourra pas vous proposer de missions adaptées.</small></div>
+          </div>
+        </div>
+        <div id="current-skills-tags" style="min-height:40px"></div>
+      </div>
+    </div>
+
+    <!-- Add skills form -->
+    <div class="card">
+      <div class="card-header"><div><h3>➕ Ajouter des compétences</h3><p>Saisissez ou choisissez dans les suggestions</p></div></div>
+      <div class="card-body">
+
+        <!-- Quick suggestions by category -->
+        <div style="margin-bottom:22px">
+          <div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">💡 Suggestions rapides</div>
+          <div id="suggestions"></div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--grey-100);margin:0 0 20px">
+
+        <!-- Manual add -->
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nom de la compétence *</label>
+            <input class="input" id="skill-name" placeholder="Ex: Python, Management, Excel...">
+          </div>
+          <div class="form-group">
+            <label>Catégorie</label>
+            <select class="input" id="skill-cat">
+              <option>Technique</option>
+              <option>Soft Skills</option>
+              <option>Gestion de projet</option>
+              <option>Langues</option>
+              <option>Domaine métier</option>
+              <option>Autre</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Niveau de maîtrise</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+              <button class="level-btn" onclick="setLevel(this,'Débutant')">🌱 Débutant</button>
+              <button class="level-btn active" onclick="setLevel(this,'Intermédiaire')">⚡ Intermédiaire</button>
+              <button class="level-btn" onclick="setLevel(this,'Avancé')">🚀 Avancé</button>
+              <button class="level-btn" onclick="setLevel(this,'Expert')">🏆 Expert</button>
+            </div>
+            <input type="hidden" id="skill-level" value="Intermédiaire">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:18px">
+          <button class="btn btn-primary" onclick="addSkillToList()">➕ Ajouter à la liste</button>
+        </div>
+
+        <!-- Skills to save -->
+        <div id="skills-to-add" style="margin-top:20px;display:none">
+          <hr style="border:none;border-top:1px solid var(--grey-100);margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">📦 À enregistrer</div>
+          <div id="pending-skills"></div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-primary" onclick="saveAllSkills()">💾 Enregistrer toutes les compétences</button>
+            <button class="btn btn-light" onclick="clearPending()">🗑️ Vider</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matching missions preview -->
+    <div class="card">
+      <div class="card-header">
+        <div><h3>🤖 Missions compatibles avec vos compétences</h3><p>Analyse intelligente en temps réel</p></div>
+        <button class="btn btn-outline btn-sm" onclick="loadMatchingMissions()">🔍 Analyser</button>
+      </div>
+      <div class="card-body" id="matching-missions">
+        <div class="empty-state"><div class="icon">🤖</div><p>Cliquez sur Analyser pour voir les missions compatibles</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?!= include('isims-scripts') ?>
+<script>
+var session = requireAuth();
+if(!session) throw new Error('Not authenticated');
+buildIsimsNav('skills-form', session.role);
+
+var pendingSkills = [];
+var currentSkills = [];
+var empData = null;
+
+var SUGGESTIONS = {
+  '💻 Informatique': ['Python','JavaScript','Java','SQL','React','Node.js','PHP','C++','Git','Docker','Linux','Machine Learning','Data Science','Cloud AWS','Azure'],
+  '📊 Gestion': ['Management','Leadership','Gestion de projet','Scrum','Agile','Excel','PowerPoint','Reporting','Analyse financière'],
+  '🤝 Soft Skills': ['Communication','Travail en équipe','Résolution de problèmes','Créativité','Adaptabilité','Gestion du temps','Esprit critique'],
+  '🌍 Langues': ['Français','Anglais','Arabe','Espagnol','Allemand'],
+  '⚙️ Ingénierie': ['AutoCAD','MATLAB','SolidWorks','Électricité','Mécanique','Qualité ISO','Maintenance industrielle']
+};
+
+function buildSuggestions(){
+  var html='';
+  Object.keys(SUGGESTIONS).forEach(function(cat){
+    html+='<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text-light);margin-bottom:6px">'+cat+'</div>';
+    html+=SUGGESTIONS[cat].map(function(s){ return '<span class="suggest-chip" onclick="quickAdd(\''+s+'\')">'+s+'</span>'; }).join('');
+    html+='</div>';
+  });
+  document.getElementById('suggestions').innerHTML=html;
+}
+
+function quickAdd(name){
+  if(currentSkills.indexOf(name)!==-1||pendingSkills.find(function(p){return p.name===name;})){
+    showToast('"'+name+'" est déjà dans votre liste','info'); return;
+  }
+  pendingSkills.push({name:name, level:'Intermédiaire', cat:'Technique'});
+  renderPending();
+}
+
+function setLevel(btn, level){
+  document.querySelectorAll('.level-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('skill-level').value=level;
+}
+
+function addSkillToList(){
+  var name=document.getElementById('skill-name').value.trim();
+  var level=document.getElementById('skill-level').value;
+  var cat=document.getElementById('skill-cat').value;
+  if(!name){showToast('Entrez un nom de compétence','error');return;}
+  if(currentSkills.indexOf(name)!==-1||pendingSkills.find(function(p){return p.name===name;})){
+    showToast('"'+name+'" est déjà dans votre liste','info');return;
+  }
+  pendingSkills.push({name:name,level:level,cat:cat});
+  renderPending();
+  document.getElementById('skill-name').value='';
+}
+
+function renderPending(){
+  var el=document.getElementById('pending-skills');
+  var wrap=document.getElementById('skills-to-add');
+  if(!pendingSkills.length){wrap.style.display='none';el.innerHTML='';return;}
+  wrap.style.display='block';
+  el.innerHTML=pendingSkills.map(function(s,i){
+    return '<div class="skill-tag">'+esc(s.name)+' <span style="opacity:.5">·</span> '+statusBadge(s.level)+'<span class="rm" onclick="removePending('+i+')">✕</span></div>';
+  }).join('');
+}
+
+function removePending(i){pendingSkills.splice(i,1);renderPending();}
+function clearPending(){pendingSkills=[];renderPending();}
+
+function loadCurrentSkills(){
+  callServer('getEmployeeByCIN',[session.cin],function(err,emp){
+    if(err||!emp) return;
+    empData=emp;
+    currentSkills=(emp['Compétences']||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+    document.getElementById('skills-count').textContent=currentSkills.length+' compétence(s)';
+    var el=document.getElementById('current-skills-tags');
+    document.getElementById('current-skills-empty').style.display=currentSkills.length?'none':'block';
+    el.innerHTML=currentSkills.map(function(s){
+      return '<div class="skill-tag">'+esc(s)+'<span class="rm" onclick="removeCurrentSkill(\''+esc(s)+'\')">✕</span></div>';
+    }).join('');
+  });
+}
+
+function removeCurrentSkill(name){
+  currentSkills=currentSkills.filter(function(s){return s!==name;});
+  if(!empData) return;
+  callServer('updateEmployee',[empData['ID'],{competences:currentSkills.join(', ')}],function(err,res){
+    if(res&&res.success){showToast('"'+name+'" supprimée ✅','success');loadCurrentSkills();}
+    else showToast('Erreur','error');
+  });
+}
+
+function saveAllSkills(){
+  if(!pendingSkills.length){showToast('Aucune compétence à enregistrer','error');return;}
+  if(!empData){showToast('Profil non chargé, réessayez','error');return;}
+  var merged=currentSkills.concat(pendingSkills.map(function(p){return p.name;}));
+  var unique=[]; merged.forEach(function(s){if(unique.indexOf(s)===-1)unique.push(s);});
+  callServer('updateEmployee',[empData['ID'],{competences:unique.join(', ')}],function(err,res){
+    if(res&&res.success){
+      showToast(pendingSkills.length+' compétence(s) enregistrée(s) ✅','success');
+      pendingSkills=[];renderPending();loadCurrentSkills();
+    } else showToast((res&&res.message)||'Erreur','error');
+  });
+}
+
+function loadMatchingMissions(){
+  if(!empData){showToast('Chargez votre profil d\'abord','info');return;}
+  var mySkills=currentSkills;
+  if(!mySkills.length){document.getElementById('matching-missions').innerHTML='<div class="empty-state"><div class="icon">⚠️</div><p>Ajoutez des compétences pour voir les missions compatibles</p></div>';return;}
+  callServer('getMissions',[],function(err,missions){
+    if(err||!missions){return;}
+    var scored=missions.filter(function(m){return m['Statut']==='Ouverte';}).map(function(m){
+      var req=(m['Compétences Requises']||'').split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean);
+      var matched=mySkills.filter(function(s){return req.some(function(r){return r.indexOf(s.toLowerCase())!==-1||s.toLowerCase().indexOf(r)!==-1;});});
+      return {mission:m, matched:matched, pct:req.length?Math.round(matched.length/req.length*100):0};
+    }).filter(function(x){return x.pct>0;}).sort(function(a,b){return b.pct-a.pct;});
+
+    if(!scored.length){
+      document.getElementById('matching-missions').innerHTML='<div class="empty-state"><div class="icon">🔍</div><p>Aucune mission ouverte ne correspond à vos compétences actuellement</p></div>';
+      return;
+    }
+    document.getElementById('matching-missions').innerHTML='<div class="table-wrapper"><table><thead><tr><th>Mission</th><th>Département</th><th>Compétences matchées</th><th>Compatibilité</th></tr></thead><tbody>'+
+      scored.slice(0,8).map(function(x){
+        var pColor=x.pct>=70?'var(--green)':x.pct>=40?'var(--orange)':'var(--red)';
+        return '<tr><td><strong>'+esc(x.mission['Titre'])+'</strong></td><td>'+esc(x.mission['Département'])+'</td>'+
+          '<td>'+x.matched.map(function(s){return '<span class="skill-chip match">'+esc(s)+'</span>';}).join('')+'</td>'+
+          '<td><div style="display:flex;align-items:center;gap:8px"><div style="font-size:16px;font-weight:800;color:'+pColor+'">'+x.pct+'%</div><div style="flex:1;min-width:80px">'+miniBar(x.pct,pColor)+'</div></div></td></tr>';
+      }).join('')+'</tbody></table></div>';
+  });
+}
+
+buildSuggestions();
+loadCurrentSkills();
+</script>
+</body>
+</html>

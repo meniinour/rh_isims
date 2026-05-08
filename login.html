@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RH Platform – Authentification</title>
+  <?!= include('isims-styles') ?>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      background: var(--grey-50);
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Split layout */
+    .login-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Left Side: Branding */
+    .login-brand {
+      flex: 1;
+      background: var(--blue-ultra);
+      color: var(--blue-main);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-brand::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      z-index: 1;
+    }
+
+    .brand-content {
+      position: relative;
+      z-index: 2;
+      max-width: 480px;
+    }
+
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 54px;
+      height: 54px;
+      background: var(--blue-main);
+      color: white;
+      border-radius: 12px;
+      font-size: 24px;
+      font-weight: 800;
+      font-family: 'Poppins', sans-serif;
+      margin-bottom: 30px;
+    }
+
+    .brand-content h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+    }
+
+    .brand-content p {
+      font-size: 16px;
+      opacity: 0.85;
+      line-height: 1.6;
+    }
+
+    /* Right Side: Form */
+    .login-form-wrapper {
+      flex: 1;
+      max-width: 600px;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 40px 80px;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.03);
+    }
+
+    .form-header {
+      margin-bottom: 30px;
+    }
+
+    .form-header h2 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 28px;
+      color: var(--grey-900);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .form-header p {
+      color: var(--text-light);
+      font-size: 14px;
+    }
+
+    /* Role Toggle */
+    .role-toggle {
+      display: flex;
+      background: var(--grey-100);
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 30px;
+    }
+
+    .role-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--grey-600);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .role-btn.active {
+      background: white;
+      color: var(--blue-main);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--grey-800);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      padding: 12px 16px;
+      padding-left: 42px;
+      border: 1px solid var(--grey-300);
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .input-wrapper input:focus {
+      outline: none;
+      border-color: var(--blue-main);
+      box-shadow: 0 0 0 3px rgba(0, 85, 184, 0.1);
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--grey-400);
+      font-size: 18px;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--blue-main);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 10px;
+    }
+
+    .btn-submit:hover {
+      background: var(--blue-dark);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .error-msg {
+      background: #fce8ea;
+      color: #dc3545;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .error-msg.show {
+      display: flex;
+    }
+
+    .help-text {
+      text-align: center;
+      margin-top: 30px;
+      font-size: 13px;
+      color: var(--text-light);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .login-brand {
+        display: none;
+      }
+
+      .login-form-wrapper {
+        max-width: 100%;
+        padding: 40px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .login-form-wrapper {
+        padding: 30px 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="toast-container"></div>
+  <div class="loader-overlay" id="loader">
+    <div class="spinner"></div>
+    <p>Connexion...</p>
+  </div>
+
+  <div class="login-container">
+    <!-- Left Side: Brand -->
+    <div class="login-brand">
+      <div class="brand-content">
+        <div class="brand-logo">RH</div>
+        <h1>Plateforme de Gestion des Ressources Humaines</h1>
+        <p>Un système intelligent pour optimiser l'affectation des missions, suivre les compétences et gérer le
+          personnel efficacement.</p>
+      </div>
+    </div>
+
+    <!-- Right Side: Login Form -->
+    <div class="login-form-wrapper">
+      <div class="form-header">
+        <h2>Connexion</h2>
+        <p>Veuillez vous identifier pour accéder à votre espace.</p>
+      </div>
+
+      <!-- Role Toggle -->
+      <div class="role-toggle">
+        <button class="role-btn active" id="btn-emp" onclick="setRole('employee')">Employé</button>
+        <button class="role-btn" id="btn-adm" onclick="setRole('admin')">Administrateur</button>
+      </div>
+
+      <div class="error-msg" id="error-box">
+        <span>⚠️</span> <span id="error-text">Identifiants incorrects</span>
+      </div>
+
+      <form onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label id="lbl-cin">Numéro CIN</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input type="text" id="input-cin" placeholder="Saisissez votre identifiant" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Mot de passe</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="input-pwd" placeholder="Saisissez votre mot de passe" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submit-btn">Se connecter</button>
+      </form>
+
+      <div class="help-text">
+        Problème de connexion ? Veuillez contacter l'administration.
+        <div style="margin-top:15px; font-size:11px; color:#a8b2c8;">
+          (Accès Admin par défaut - CIN: ADMIN | Mdp: admin2025)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <?!= include('isims-scripts') ?>
+  <script>
+    var currentRole = 'employee';
+
+    // Check existing session
+    var s = getSession();
+    if (s && s.token) {
+      getUrl(s.role === 'admin' ? 'admin-dashboard' : 'emp-dashboard');
+    }
+
+    function setRole(role) {
+      currentRole = role;
+      document.getElementById('btn-emp').classList.toggle('active', role === 'employee');
+      document.getElementById('btn-adm').classList.toggle('active', role === 'admin');
+
+      document.getElementById('lbl-cin').textContent = role === 'admin' ? 'Identifiant Administrateur' : 'Numéro CIN';
+      document.getElementById('input-cin').placeholder = role === 'admin' ? 'Ex: ADMIN' : 'Ex: 12345678';
+
+      document.getElementById('error-box').classList.remove('show');
+      document.getElementById('input-cin').value = '';
+      document.getElementById('input-pwd').value = '';
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      var cin = document.getElementById('input-cin').value.trim();
+      var pwd = document.getElementById('input-pwd').value;
+      var btn = document.getElementById('submit-btn');
+      var errBox = document.getElementById('error-box');
+
+      if (!cin || !pwd) {
+        document.getElementById('error-text').textContent = 'Veuillez remplir tous les champs.';
+        errBox.classList.add('show');
+        return;
+      }
+
+      errBox.classList.remove('show');
+      btn.disabled = true;
+      btn.textContent = 'Authentification...';
+
+      google.script.run
+        .withSuccessHandler(function (res) {
+          btn.disabled = false;
+          btn.textContent = 'Se connecter';
+          if (!res || !res.success) {
+            document.getElementById('error-text').textContent = res ? res.message : 'Identifiants incorrects';
+            errBox.classList.add('show');
+            return;
+          }
+
+          saveSession(res);
+          getUrl(res.role === 'admin' ? 'admin-dashboard' : 'emp-dashboard');
+        })
+        .withFailureHandler(function (err) {
+          btn.disabled = false;
+          btn.textContent = 'Se connecter';
+          document.getElementById('error-text').textContent = 'Erreur de communication avec le serveur.';
+          errBox.classList.add('show');
+        })
+        .login(cin, pwd, currentRole);
+    }
+  </script>
+</body>
+
+</html>

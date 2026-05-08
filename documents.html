@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RH Platform – Documents RH</title>
+  <?!= include('isims-styles') ?>
+  <style>
+    .file-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      background: white; border: 1px solid var(--grey-200);
+      margin-bottom: 10px; transition: all var(--transition);
+      box-shadow: var(--shadow-sm);
+    }
+    .file-item:hover { border-color: var(--blue-main); }
+    .file-icon { font-size: 28px; flex-shrink: 0; }
+    .file-info { flex: 1; }
+    .file-info h4 { font-size: 13.5px; font-weight: 700; margin-bottom: 3px; color: var(--grey-900); }
+    .file-info .meta { font-size: 11px; color: var(--text-light); }
+    .extracted-chips span { display:inline-block; padding:2px 8px; border-radius:99px; font-size:10px; font-weight:600; margin:2px; background:var(--blue-pale); color:var(--blue-main); border: 1px solid var(--blue-pale); }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="loader-overlay" id="loader"><div class="spinner"></div><p>Chargement...</p></div>
+
+<header class="isims-header">
+  <div class="header-inner">
+    <a class="header-logo" href="?page=landing">
+      <div class="logo-mark">RH</div>
+      <div class="logo-text"><h1>RH Platform</h1><small>ADMINISTRATION</small></div>
+    </a>
+    <div class="header-spacer"></div>
+    <nav class="header-nav">
+      <a onclick="navigate('admin-dashboard')">📊 Dashboard</a>
+      <a onclick="navigate('employees')">👥 Employés</a>
+      <a onclick="navigate('missions')">🎯 Missions</a>
+      <a onclick="navigate('recommendation')">🤖 IA</a>
+    </nav>
+    <div class="header-user" id="header-user"></div>
+    <button class="btn btn-light btn-sm" style="margin-left:8px" onclick="doLogout()">🚪 Déconnexion</button>
+  </div>
+</header>
+
+<div class="sub-header">
+  <div class="sub-header-inner">
+    <span>Admin</span><span class="sep">›</span><span class="current">Documents RH</span>
+  </div>
+</div>
+
+<div class="page-layout">
+  <aside class="isims-sidebar">
+    <div class="sidebar-section-title">Navigation</div>
+    <div id="isims-sidebar-nav"></div>
+  </aside>
+
+  <div class="page-content">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 24px;">
+      <div>
+        <div class="page-title">📂 Documents RH</div>
+        <div class="page-subtitle">Extraction automatique depuis le dossier Drive <strong>"rhdoc"</strong></div>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <button class="btn btn-light" onclick="loadDocuments()">🔄 Actualiser</button>
+        <button class="btn btn-primary" onclick="triggerProcessing()">⚡ Traiter les fichiers Drive</button>
+      </div>
+    </div>
+
+    <!-- Info banner -->
+    <div style="background:var(--blue-pale);border:1px solid var(--blue-main);border-radius:var(--radius);padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:14px">
+      <span style="font-size:28px">ℹ️</span>
+      <div>
+        <strong style="font-size:14px;color:var(--blue-dark)">Comment ça fonctionne</strong>
+        <p style="font-size:12px;color:var(--grey-800);margin-top:4px">
+          1. Placez vos fichiers <strong>.docx</strong> dans le dossier Google Drive nommé <strong>"rhdoc"</strong><br>
+          2. Cliquez sur <strong>"Traiter les fichiers Drive"</strong><br>
+          3. Le système convertit, extrait Nom / Email / Téléphone / Compétences et crée automatiquement les fiches employés
+        </p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card sc-blue"><div class="sc-icon">📄</div><div class="sc-label">Fichiers traités</div><div class="sc-value" id="s-total">–</div></div>
+      <div class="stat-card sc-green"><div class="sc-icon">✅</div><div class="sc-label">Succès</div><div class="sc-value" id="s-ok">–</div></div>
+      <div class="stat-card sc-red"><div class="sc-icon">❌</div><div class="sc-label">Erreurs</div><div class="sc-value" id="s-err">–</div></div>
+      <div class="stat-card sc-orange"><div class="sc-icon">👤</div><div class="sc-label">Employés créés</div><div class="sc-value" id="s-emp">–</div></div>
+    </div>
+
+    <!-- Processing result panel -->
+    <div id="process-result" style="display:none" class="card" style="margin-bottom:20px">
+      <div class="card-header"><div><h3>📋 Résultat du dernier traitement</h3></div></div>
+      <div class="card-body" id="process-content"></div>
+    </div>
+
+    <!-- Documents table -->
+    <div class="card">
+      <div class="card-header">
+        <div><h3>Historique des documents traités</h3><p id="doc-count">0 document(s)</p></div>
+      </div>
+      <div class="card-body" id="doc-list">
+        <div class="empty-state"><div class="icon">📂</div><p>Aucun document traité. Cliquez sur "Traiter les fichiers Drive".</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?!= include('isims-scripts') ?>
+<script>
+var session = requireAuth('admin');
+if(!session) throw new Error('Not authenticated');
+buildIsimsNav('documents', session.role);
+
+function loadDocuments(){
+  callServer('getDocuments',[],function(err,data){
+    if(err) return;
+    var docs=data||[];
+    document.getElementById('s-total').textContent=docs.length;
+    document.getElementById('s-ok').textContent=docs.filter(function(d){return d['Statut']==='Traité';}).length;
+    document.getElementById('s-err').textContent=docs.filter(function(d){return d['Statut']==='Erreur';}).length;
+    renderDocs(docs);
+  });
+  callServer('getEmployees',[],function(err,data){
+    if(!err&&data) document.getElementById('s-emp').textContent=data.filter(function(e){return e['Statut']==='Candidat';}).length;
+  });
+}
+
+function renderDocs(list){
+  var el=document.getElementById('doc-list');
+  document.getElementById('doc-count').textContent=list.length+' document(s)';
+  if(!list.length){
+    el.innerHTML='<div class="empty-state"><div class="icon">📂</div><p>Aucun document traité</p></div>';
+    return;
+  }
+  el.innerHTML=list.map(function(d){
+    var skills=(d['Compétences Extraites']||'').split(',').filter(Boolean).slice(0,6);
+    var isOk=d['Statut']==='Traité';
+    return '<div class="file-item">'+
+      '<div class="file-icon">'+(isOk?'📄':'⚠️')+'</div>'+
+      '<div class="file-info">'+
+        '<h4>'+esc(d['Fichier'])+'</h4>'+
+        '<div class="meta">'+
+          (d['Nom Extrait']?'👤 <strong>'+esc(d['Nom Extrait'])+'</strong>  ':'')  +
+          (d['Email Extrait']?'✉️ '+esc(d['Email Extrait'])+'  ':'') +
+          (d['Téléphone Extrait']?'📞 '+esc(d['Téléphone Extrait'])+'  ':'') +
+          '🕒 '+esc(d['Date Traitement'])+
+        '</div>'+
+        (skills.length?'<div class="extracted-chips" style="margin-top:6px">'+skills.map(function(s){return '<span>'+esc(s.trim())+'</span>';}).join('')+'</div>':'')+
+      '</div>'+
+      '<div>'+statusBadge(d['Statut'])+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+function triggerProcessing(){
+  showToast('Traitement en cours... ⏳ (peut prendre quelques secondes)','info');
+  callServer('triggerDocumentProcessing',[],function(err,res){
+    if(err){showToast('Erreur de traitement','error');return;}
+    var panel=document.getElementById('process-result');
+    var content=document.getElementById('process-content');
+    panel.style.display='block';
+
+    if(!res.success){
+      content.innerHTML='<div class="empty-state"><div class="icon">⚠️</div><p>'+esc(res.message||'Aucun fichier trouvé dans le dossier "rhdoc"')+'</p></div>';
+      showToast(res.message||'Aucun fichier trouvé','error');
+      return;
+    }
+
+    var results=res.results||[];
+    content.innerHTML='<p style="margin-bottom:14px;color:var(--text-muted)">'+results.length+' fichier(s) traité(s)</p>'+
+      results.map(function(r){
+        var icon=r.success?'✅':'❌';
+        var info=r.success?
+          (r.data.name?' • <strong>'+esc(r.data.name)+'</strong>':'')+
+          (r.data.email?' • '+esc(r.data.email):'')+
+          (r.data.skills&&r.data.skills.length?' • '+r.data.skills.slice(0,3).join(', '):'')
+          :' – '+esc(r.error||'Erreur inconnue');
+        return '<div class="file-item">'+
+          '<div class="file-icon">'+icon+'</div>'+
+          '<div class="file-info"><h4>'+esc(r.file)+'</h4><div class="meta">'+info+'</div></div>'+
+          statusBadge(r.success?'Traité':'Erreur')+
+        '</div>';
+      }).join('');
+
+    showToast(results.filter(function(r){return r.success;}).length+' fichier(s) traités avec succès ✅','success');
+    loadDocuments();
+  });
+}
+
+loadDocuments();
+</script>
+</body>
+</html>

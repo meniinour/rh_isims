@@ -1,0 +1,127 @@
+<!-- ============================================================
+     SHARED JS UTILITIES  –  included in every page
+     ============================================================ -->
+<script>
+  // ── GAS bridge ───────────────────────────────────────────────
+  function callServer(fn, args, cb) {
+    showLoader();
+    google.script.run
+      .withSuccessHandler(function(res) { hideLoader(); cb(null, res); })
+      .withFailureHandler(function(err) { hideLoader(); cb(err, null); showToast(err.message || 'Erreur serveur', 'error'); })
+      [fn].apply(null, args || []);
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────
+  function showToast(msg, type) {
+    type = type || 'info';
+    var icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+    var el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = '<span>' + (icons[type]||'ℹ️') + '</span><span>' + msg + '</span>';
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(function() { el.remove(); }, 3500);
+  }
+
+  // ── Loader ────────────────────────────────────────────────────
+  function showLoader() { document.getElementById('loader').classList.add('show'); }
+  function hideLoader() { document.getElementById('loader').classList.remove('show'); }
+
+  // ── Modal helpers ─────────────────────────────────────────────
+  function openModal(id)  { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  // ── Navigate ──────────────────────────────────────────────────
+  function navigate(page) {
+    showLoader();
+    google.script.run
+      .withSuccessHandler(function(url) { window.top.location.href = url + '?page=' + page; })
+      .withFailureHandler(function() { hideLoader(); })
+      .getWebAppUrl();
+  }
+
+  // ── Get web app URL ───────────────────────────────────────────
+  // (defined in Code.gs via google.script.run; used inline below)
+
+  // ── Format date ───────────────────────────────────────────────
+  function fmtDate(d) {
+    if (!d) return '–';
+    var date = new Date(d);
+    if (isNaN(date)) return d;
+    return date.toLocaleDateString('fr-FR');
+  }
+
+  // ── Escape HTML ───────────────────────────────────────────────
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Status badge ──────────────────────────────────────────────
+  function statusBadge(s) {
+    var map = {
+      'Actif'     : 'badge-green',
+      'Candidat'  : 'badge-purple',
+      'Inactif'   : 'badge-grey',
+      'En cours'  : 'badge-purple',
+      'Ouverte'   : 'badge-yellow',
+      'Terminée'  : 'badge-green',
+      'Annulée'   : 'badge-red',
+      'Approuvée' : 'badge-green',
+      'En attente': 'badge-yellow',
+      'Refusée'   : 'badge-red',
+      'Traité'    : 'badge-green',
+      'Erreur'    : 'badge-red',
+      'Haute'     : 'badge-red',
+      'Normale'   : 'badge-purple',
+      'Faible'    : 'badge-grey'
+    };
+    return '<span class="badge ' + (map[s]||'badge-grey') + '">' + esc(s||'–') + '</span>';
+  }
+
+  // ── Score ring ────────────────────────────────────────────────
+  function scoreRing(n) {
+    var cls = n >= 70 ? 'high' : n >= 40 ? 'mid' : 'low';
+    return '<div class="score-ring ' + cls + '">' + n + '</div>';
+  }
+
+  // ── Build sidebar nav ─────────────────────────────────────────
+  function buildSidebar(activePage) {
+    var links = [
+      { page: 'dashboard',       icon: '📊', label: 'Tableau de bord' },
+      { page: 'employees',       icon: '👥', label: 'Employés' },
+      { page: 'missions',        icon: '🎯', label: 'Missions' },
+      { page: 'absences',        icon: '📅', label: 'Absences' },
+      { page: 'recommendation',  icon: '🤖', label: 'Recommandations' },
+      { page: 'documents',       icon: '📂', label: 'Documents RH' }
+    ];
+    var nav = document.getElementById('sidebar-nav');
+    if (!nav) return;
+    links.forEach(function(l) {
+      var btn = document.createElement('button');
+      btn.className = 'nav-link' + (l.page === activePage ? ' active' : '');
+      btn.innerHTML = '<span class="icon">' + l.icon + '</span><span>' + l.label + '</span>';
+      btn.onclick = function() { navigate(l.page); };
+      nav.appendChild(btn);
+    });
+  }
+
+  // ── Confirm dialog ────────────────────────────────────────────
+  function confirmAction(msg, cb) {
+    if (window.confirm(msg)) cb();
+  }
+
+  // ── Simple chart bar (inline SVG) ─────────────────────────────
+  function miniBar(pct, color) {
+    color = color || '#6c63ff';
+    return '<div class="progress"><div class="progress-bar" style="width:' + Math.min(100, pct) + '%;background:' + color + '"></div></div>';
+  }
+
+  // ── On DOM ready ──────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function() {
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(function(ov) {
+      ov.addEventListener('click', function(e) {
+        if (e.target === ov) ov.classList.remove('open');
+      });
+    });
+  });
+</script>

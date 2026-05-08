@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RH Platform – Tâches & Missions</title>
+  <?!= include('isims-styles') ?>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="loader-overlay" id="loader"><div class="spinner"></div><p>Chargement...</p></div>
+
+<header class="isims-header">
+  <div class="header-inner">
+    <a class="header-logo" href="?page=landing">
+      <div class="logo-mark">RH</div>
+      <div class="logo-text"><h1>RH Platform</h1><small>TÂCHES & MISSIONS</small></div>
+    </a>
+    <div class="header-spacer"></div>
+    <div class="header-user" id="header-user"></div>
+    <button class="btn btn-light btn-sm" style="margin-left:8px" onclick="doLogout()">🚪</button>
+  </div>
+</header>
+
+<div class="sub-header">
+  <div class="sub-header-inner">
+    <span onclick="navigate(session&&session.role==='admin'?'admin-dashboard':'emp-dashboard')" style="cursor:pointer;color:var(--blue-main)">🏠 Accueil</span>
+    <span class="sep">›</span><span class="current">📋 Tâches & Missions</span>
+  </div>
+</div>
+
+<div class="page-layout">
+  <aside class="isims-sidebar">
+    <div class="sidebar-section-title">Navigation</div>
+    <div id="isims-sidebar-nav"></div>
+    <div class="sidebar-section-title">Filtrer par statut</div>
+    <button class="sidebar-item active" id="f-all" onclick="filterBy('all')"><span class="s-icon">📋</span><span>Toutes</span></button>
+    <button class="sidebar-item" id="f-open" onclick="filterBy('Ouverte')"><span class="s-icon">🟡</span><span>Ouvertes</span></button>
+    <button class="sidebar-item" id="f-enc" onclick="filterBy('En cours')"><span class="s-icon">🔵</span><span>En cours</span></button>
+    <button class="sidebar-item" id="f-done" onclick="filterBy('Terminée')"><span class="s-icon">🟢</span><span>Terminées</span></button>
+    <div class="sidebar-section-title">Filtrer par priorité</div>
+    <button class="sidebar-item" id="p-haute" onclick="filterPrio('Haute')"><span class="s-icon">🔴</span><span>Haute</span></button>
+    <button class="sidebar-item" id="p-norm" onclick="filterPrio('Normale')"><span class="s-icon">🔵</span><span>Normale</span></button>
+  </aside>
+
+  <div class="page-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div><div class="page-title">📋 Tâches & Missions</div><div class="page-subtitle" id="task-subtitle">Chargement...</div></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="search-wrap"><input class="input" id="search-input" placeholder="Rechercher une tâche..." oninput="filterTable()" style="width:220px"></div>
+        <div id="admin-actions"></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat-card sc-blue"><div class="sc-icon">📋</div><div class="sc-label">Total</div><div class="sc-value" id="t-total">–</div></div>
+      <div class="stat-card sc-orange"><div class="sc-icon">🟡</div><div class="sc-label">Ouvertes</div><div class="sc-value" id="t-open">–</div></div>
+      <div class="stat-card"><div class="sc-icon">🔵</div><div class="sc-label">En cours</div><div class="sc-value" id="t-enc">–</div></div>
+      <div class="stat-card sc-green"><div class="sc-icon">✅</div><div class="sc-label">Terminées</div><div class="sc-value" id="t-done">–</div></div>
+    </div>
+
+    <!-- IA suggestion banner (shown for employees) -->
+    <div id="ia-banner" style="display:none;background:linear-gradient(90deg,var(--blue-pale),#e8f8ff);border:1px solid var(--blue-light);border-radius:var(--radius);padding:16px 22px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+      <span style="font-size:32px">🤖</span>
+      <div style="flex:1">
+        <strong style="color:var(--blue-dark);font-size:14px">Intelligence artificielle</strong>
+        <p style="font-size:12.5px;color:var(--text-light);margin-top:2px">Le système analyse vos compétences et identifie les meilleures tâches pour vous.</p>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showMyMatches()">🔍 Voir mes missions compatibles</button>
+    </div>
+
+    <!-- Tasks list -->
+    <div class="card">
+      <div class="card-header">
+        <div><h3>Liste des tâches</h3><p id="task-count">0 tâche(s)</p></div>
+        <button class="btn btn-outline btn-sm" onclick="loadTasks()">🔄 Actualiser</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Tâche / Mission</th><th>Département</th><th>Priorité</th><th>Compétences requises</th><th>Statut</th><th>Affecté à</th><th>Dates</th><th id="th-action">Actions</th></tr></thead>
+          <tbody id="task-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Recommend for mission (admin) -->
+<div class="modal-overlay" id="modal-rec">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header"><h3>🤖 Recommandations IA</h3><button class="modal-close" onclick="closeModal('modal-rec')">✕</button></div>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:16px">Mission : <strong id="rec-title"></strong></p>
+    <div id="rec-list"><div class="empty-state"><div class="icon">⏳</div><p>Analyse en cours...</p></div></div>
+    <div class="modal-footer"><button class="btn btn-light" onclick="closeModal('modal-rec')">Fermer</button></div>
+  </div>
+</div>
+
+<?!= include('isims-scripts') ?>
+<script>
+var session = requireAuth();
+if(!session) throw new Error('Not authenticated');
+buildIsimsNav('tasks-page', session.role);
+
+var allTasks=[], activeFilter='all', activePrio='';
+var empData=null;
+
+// Show admin actions
+if(session.role==='admin'){
+  document.getElementById('admin-actions').innerHTML='<button class="btn btn-primary" onclick="navigate(\'missions\')">➕ Nouvelle tâche</button>';
+} else {
+  document.getElementById('ia-banner').style.display='flex';
+  document.getElementById('th-action').textContent='Compatibilité';
+}
+
+document.getElementById('task-subtitle').textContent = session.role==='admin'
+  ? 'Gérer et assigner toutes les tâches de l\'organisation'
+  : 'Vos tâches assignées et les missions disponibles';
+
+function loadTasks(){
+  callServer('getMissions',[],function(err,data){
+    if(err) return;
+    allTasks=data||[];
+    document.getElementById('t-total').textContent=allTasks.length;
+    document.getElementById('t-open').textContent=allTasks.filter(function(m){return m['Statut']==='Ouverte';}).length;
+    document.getElementById('t-enc').textContent=allTasks.filter(function(m){return m['Statut']==='En cours';}).length;
+    document.getElementById('t-done').textContent=allTasks.filter(function(m){return m['Statut']==='Terminée';}).length;
+
+    if(session.role==='employee'){
+      callServer('getEmployeeByCIN',[session.cin],function(err2,emp){
+        if(!err2&&emp) empData=emp;
+        renderTasks();
+      });
+    } else renderTasks();
+  });
+}
+
+function filterBy(status){
+  activeFilter=status; activePrio='';
+  ['all','Ouverte','En cours','Terminée'].forEach(function(s){
+    var el=document.getElementById('f-'+s.replace(' ','-').replace('Ouverte','open').replace('En cours','enc').replace('Terminée','done').replace('all','all'));
+    if(el) el.classList.toggle('active', s===status);
+  });
+  renderTasks();
+}
+
+function filterPrio(p){
+  activePrio=(activePrio===p)?'':p;
+  document.getElementById('p-haute').classList.toggle('active',activePrio==='Haute');
+  document.getElementById('p-norm').classList.toggle('active',activePrio==='Normale');
+  renderTasks();
+}
+
+function filterTable(){
+  renderTasks();
+}
+
+function renderTasks(){
+  var q=document.getElementById('search-input').value.toLowerCase();
+  var list=allTasks.filter(function(m){
+    var matchFilter=activeFilter==='all'||m['Statut']===activeFilter;
+    var matchPrio=!activePrio||m['Priorité']===activePrio;
+    var matchQ=!q||(m['Titre']+m['Département']+m['Compétences Requises']).toLowerCase().indexOf(q)!==-1;
+    return matchFilter&&matchPrio&&matchQ;
+  });
+
+  document.getElementById('task-count').textContent=list.length+' tâche(s)';
+  var tbody=document.getElementById('task-tbody');
+  if(!list.length){
+    tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><p>Aucune tâche trouvée</p></div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML=list.map(function(m){
+    var skills=(m['Compétences Requises']||'').split(',').slice(0,2).map(function(s){return '<span class="skill-chip" style="font-size:10px">'+esc(s.trim())+'</span>';}).join('');
+
+    var lastCol='';
+    if(session.role==='admin'){
+      lastCol='<td style="white-space:nowrap">'+
+        '<button class="btn btn-outline btn-sm" onclick="openRec(\''+esc(m['ID'])+'\',\''+esc(m['Titre'])+'\')">🤖</button> '+
+        '<button class="btn btn-primary btn-sm" onclick="navigate(\'missions\')">✏️</button></td>';
+    } else {
+      // Compute skill match for employee
+      var empSkills=empData?(empData['Compétences']||''):'';
+      var req=(m['Compétences Requises']||'').split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean);
+      var myS=empSkills.split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean);
+      var matched=myS.filter(function(s){return req.some(function(r){return r.indexOf(s)!==-1||s.indexOf(r)!==-1;});});
+      var pct=req.length?Math.round(matched.length/req.length*100):0;
+      var pColor=pct>=70?'var(--green)':pct>=40?'var(--orange)':'var(--red)';
+      lastCol='<td>'+(req.length?'<div style="display:flex;align-items:center;gap:6px"><strong style="color:'+pColor+';font-size:14px">'+pct+'%</strong><div style="flex:1;min-width:60px">'+miniBar(pct,pColor)+'</div></div>':'<span style="color:var(--text-light);font-size:12px">–</span>')+'</td>';
+    }
+
+    return '<tr>'+
+      '<td><strong>'+esc(m['Titre'])+'</strong><br><small style="color:var(--text-light)">'+esc(m['Description']||'').substring(0,50)+'</small></td>'+
+      '<td>'+esc(m['Département'])+'</td>'+
+      '<td>'+statusBadge(m['Priorité'])+'</td>'+
+      '<td>'+skills+'</td>'+
+      '<td>'+statusBadge(m['Statut'])+'</td>'+
+      '<td>'+(m['Employé Affecté']?'<span class="badge badge-green" style="font-size:11px">'+esc(m['Employé Affecté'])+'</span>':'<span style="color:var(--text-light);font-size:12px">—</span>')+'</td>'+
+      '<td style="font-size:11px;white-space:nowrap;color:var(--text-light)">'+fmtDate(m['Date Début'])+'<br>→ '+fmtDate(m['Date Fin'])+'</td>'+
+      lastCol+
+    '</tr>';
+  }).join('');
+}
+
+function openRec(missionId, missionTitle){
+  document.getElementById('rec-title').textContent=missionTitle;
+  document.getElementById('rec-list').innerHTML='<div class="empty-state"><div class="icon">⏳</div><p>Analyse IA en cours...</p></div>';
+  openModal('modal-rec');
+  callServer('recommendEmployeesForMission',[missionId],function(err,res){
+    if(err||!res||!res.success){document.getElementById('rec-list').innerHTML='<div class="empty-state"><p>Erreur lors de l\'analyse</p></div>';return;}
+    var html='';
+    if(!res.recommendations||!res.recommendations.length){
+      html='<div class="empty-state"><div class="icon">😔</div><p>Aucun employé disponible</p></div>';
+    } else {
+      html=res.recommendations.slice(0,6).map(function(r,i){
+        var sc=r.score>=70?'var(--green)':r.score>=40?'var(--orange)':'var(--red)';
+        return '<div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--grey-100)">'+
+          '<div style="font-size:22px;font-weight:800;color:'+sc+';min-width:44px;text-align:center">'+r.score+'</div>'+
+          '<div style="flex:1">'+
+            '<div style="font-weight:700;font-size:13.5px">'+esc(r.name)+'</div>'+
+            '<div style="font-size:12px;color:var(--text-light)">'+esc(r.poste)+' · '+esc(r.departement)+'</div>'+
+            '<div style="margin-top:5px">'+
+              (r.details.matchedSkills||[]).map(function(s){return '<span class="skill-chip match" style="font-size:10px">✓ '+esc(s)+'</span>';}).join('')+
+            '</div>'+
+          '</div>'+
+          '<div style="display:flex;flex-direction:column;gap:4px;align-items:center">'+
+            '<div style="font-size:10px;color:var(--text-light)">Skills '+r.details.skillScore+'%</div>'+
+            '<div style="font-size:10px;color:var(--text-light)">Dispo '+r.details.workloadScore+'%</div>'+
+            '<button class="btn btn-primary btn-sm" onclick="assignFromRec(\''+esc(missionId)+'\',\''+esc(r.id)+'\')">Affecter</button>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+    }
+    document.getElementById('rec-list').innerHTML=html;
+  });
+}
+
+function assignFromRec(mId,eId){
+  confirmAction('Affecter cet employé ?',function(){
+    callServer('assignEmployeeToMission',[mId,eId],function(err,res){
+      if(res&&res.success){showToast('Affectation réussie ✅','success');closeModal('modal-rec');loadTasks();}
+      else showToast((res&&res.message)||'Erreur','error');
+    });
+  });
+}
+
+function showMyMatches(){
+  filterBy('Ouverte');
+  showToast('Affichage des tâches ouvertes avec compatibilité IA','info');
+}
+
+loadTasks();
+</script>
+</body>
+</html>

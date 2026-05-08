@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RH Platform – Gestion des Ressources Humaines</title>
+  <?!= include('isims-styles') ?>
+  <style>
+    body { background: var(--grey-50); }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      color: var(--blue-dark); min-height: 92vh;
+      display: flex; flex-direction: column;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230055B8' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .hero-nav {
+      display: flex; align-items: center; gap: 20px;
+      padding: 20px 60px; position: relative; z-index: 2;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .hero-logo { display: flex; align-items: center; gap: 12px; }
+    .hero-logo .logo-box {
+      width: 44px; height: 44px; background: var(--blue-pale);
+      border: 2px solid var(--blue-light); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 900; font-family:'Poppins',sans-serif;
+      color: var(--blue-main);
+    }
+    .hero-logo .logo-txt { font-family:'Poppins',sans-serif; }
+    .hero-logo .logo-txt h1 { font-size: 20px; font-weight: 800; line-height: 1; color: var(--blue-dark); }
+    .hero-logo .logo-txt small { font-size: 10px; color: var(--text-light); letter-spacing: .06em; }
+    .hero-nav-links { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .hero-nav-links a {
+      color: var(--grey-600); text-decoration: none;
+      padding: 7px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600;
+      transition: background .2s;
+    }
+    .hero-nav-links a:hover { background: var(--grey-100); }
+    .hero-nav-links .btn-white {
+      background: var(--blue-main); color: white;
+      padding: 8px 22px; border-radius: 8px;
+      font-weight: 700; font-size: 13.5px;
+      transition: all .2s; text-decoration: none;
+    }
+    .hero-nav-links .btn-white:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,85,184,.2); }
+
+    .hero-body {
+      flex: 1; display: flex; align-items: center;
+      padding: 60px 60px 80px;
+      position: relative; z-index: 2; gap: 60px;
+    }
+    .hero-text { flex: 1; max-width: 580px; }
+    .hero-text .tagline {
+      display: inline-block; background: var(--blue-ultra);
+      border: 1px solid var(--blue-pale);
+      padding: 5px 14px; border-radius: 99px;
+      font-size: 12px; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase; margin-bottom: 22px; color: var(--blue-main);
+    }
+    .hero-text h2 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 50px; font-weight: 800; line-height: 1.15;
+      margin-bottom: 20px; color: var(--grey-900);
+    }
+    .hero-text h2 span { color: var(--blue-main); }
+    .hero-text p { font-size: 17px; color: var(--text-light); line-height: 1.7; margin-bottom: 36px; }
+    .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; }
+    .cta-primary {
+      background: var(--blue-main); color: white;
+      padding: 14px 32px; border-radius: 10px;
+      font-weight: 800; font-size: 15px;
+      text-decoration: none; transition: all .22s;
+      box-shadow: 0 4px 20px rgba(0,123,255,.3);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .cta-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,123,255,.4); }
+    .cta-secondary {
+      background: white; color: var(--blue-main);
+      padding: 14px 28px; border-radius: 10px;
+      font-weight: 600; font-size: 15px;
+      text-decoration: none; border: 1.5px solid var(--blue-main);
+      transition: all .22s;
+    }
+    .cta-secondary:hover { background: rgba(255,255,255,.2); }
+
+    .hero-visual {
+      flex: 1; display: flex; justify-content: center;
+      align-items: center; max-width: 480px;
+    }
+    .stats-float {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%;
+    }
+    .sf-card {
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      border-radius: 14px; padding: 20px;
+      backdrop-filter: blur(10px);
+      transition: transform .3s;
+    }
+    .sf-card:hover { transform: translateY(-4px); }
+    .sf-card .sf-icon { font-size: 30px; margin-bottom: 10px; }
+    .sf-card .sf-val { font-size: 32px; font-weight: 800; font-family:'Poppins',sans-serif; margin-bottom: 4px; }
+    .sf-card .sf-lbl { font-size: 12px; opacity: .75; }
+
+    /* Features section */
+    .features { padding: 80px 60px; background: white; }
+    .features h2 { font-family:'Poppins',sans-serif; font-size: 34px; font-weight: 800; color: var(--blue-dark); text-align: center; margin-bottom: 10px; }
+    .features .sub { text-align: center; color: var(--text-light); font-size: 15px; margin-bottom: 50px; }
+    .features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; max-width: 1100px; margin: 0 auto; }
+    .feat-card {
+      border: 1px solid var(--grey-200); border-radius: var(--radius);
+      padding: 28px 24px; transition: all .22s;
+    }
+    .feat-card:hover { border-color: var(--blue-light); box-shadow: var(--shadow); transform: translateY(-3px); }
+    .feat-card .f-icon {
+      width: 52px; height: 52px; border-radius: 12px;
+      background: var(--blue-pale); display: flex; align-items: center;
+      justify-content: center; font-size: 24px; margin-bottom: 16px;
+    }
+    .feat-card h3 { font-size: 16px; font-weight: 700; color: var(--blue-dark); margin-bottom: 8px; }
+    .feat-card p  { font-size: 13.5px; color: var(--text-light); line-height: 1.6; }
+
+    /* Footer */
+    .site-footer {
+      background: var(--blue-dark); color: rgba(255,255,255,.7);
+      text-align: center; padding: 28px 24px; font-size: 13px;
+    }
+    .site-footer strong { color: white; }
+
+    @media(max-width:900px){
+      .hero-nav { padding: 16px 24px; }
+      .hero-body { padding: 40px 24px 60px; flex-direction: column; gap: 40px; }
+      .hero-text h2 { font-size: 34px; }
+      .features { padding: 50px 24px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .hero-visual { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="loader-overlay" id="loader"><div class="spinner"></div></div>
+
+<!-- Hero -->
+<section class="hero">
+  <nav class="hero-nav">
+    <div class="hero-logo">
+      <div class="logo-box">RH</div>
+      <div class="logo-txt"><h1>RH Platform</h1><small>SYSTÈME DE GESTION DES RESSOURCES HUMAINES</small></div>
+    </div>
+    <div class="hero-nav-links">
+      <a href="#features">Fonctionnalités</a>
+      <a href="#about">À propos</a>
+      <a class="btn-white" href="?page=login">🔑 Se connecter</a>
+    </div>
+  </nav>
+
+  <div class="hero-body">
+    <div class="hero-text">
+      <div class="tagline">🏆 Plateforme Intelligente RH</div>
+      <h2>Gérez vos <span>Ressources Humaines</span> avec Intelligence</h2>
+      <p>Une plateforme complète pour la gestion des employés, l'affectation intelligente des missions, le suivi des compétences et l'analyse des absences — tout en un.</p>
+      <div class="hero-cta">
+        <a class="cta-primary" href="?page=login">🚀 Accéder à la plateforme</a>
+        <a class="cta-secondary" href="#features">📖 En savoir plus</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="stats-float">
+        <div class="sf-card"><div class="sf-icon">👥</div><div class="sf-val" id="sv-emp">–</div><div class="sf-lbl">Employés gérés</div></div>
+        <div class="sf-card"><div class="sf-icon">🎯</div><div class="sf-val" id="sv-mis">–</div><div class="sf-lbl">Missions actives</div></div>
+        <div class="sf-card"><div class="sf-icon">🤖</div><div class="sf-val">AI</div><div class="sf-lbl">Recommandation intelligente</div></div>
+        <div class="sf-card"><div class="sf-icon">📊</div><div class="sf-val">100%</div><div class="sf-lbl">Suivi en temps réel</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features" id="features">
+  <h2>Tout ce dont vous avez besoin</h2>
+  <p class="sub">Une suite complète d'outils RH modernes et intelligents</p>
+  <div class="features-grid">
+    <div class="feat-card"><div class="f-icon">🔐</div><h3>Authentification sécurisée</h3><p>Connexion par CIN pour les employés, accès admin sécurisé avec contrôle des rôles et gestion des sessions.</p></div>
+    <div class="feat-card"><div class="f-icon">👤</div><h3>Gestion des profils</h3><p>Fiches employés complètes avec compétences, département, poste, et historique des missions.</p></div>
+    <div class="feat-card"><div class="f-icon">🤖</div><h3>Recommandation IA</h3><p>Algorithme intelligent d'affectation des tâches basé sur les compétences, la charge et le taux d'absence.</p></div>
+    <div class="feat-card"><div class="f-icon">📋</div><h3>Gestion des tâches</h3><p>Créer, assigner et suivre les tâches avec filtrage par compétences requises et priorisation automatique.</p></div>
+    <div class="feat-card"><div class="f-icon">📅</div><h3>Suivi des absences</h3><p>Demandes d'absence, workflow d'approbation, analyse sur 90 jours et alertes automatiques.</p></div>
+    <div class="feat-card"><div class="f-icon">📂</div><h3>Extraction de documents</h3><p>Import automatique depuis Drive, extraction de données structurées depuis les fichiers Word (.docx).</p></div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer" id="about">
+  <strong>RH Platform</strong> — Système de Gestion des Ressources Humaines &nbsp;|&nbsp;
+  Développé avec Google Apps Script &nbsp;|&nbsp; © 2025
+</footer>
+
+<?!= include('isims-scripts') ?>
+<script>
+  // Load live stats
+  google.script.run
+    .withSuccessHandler(function(stats){
+      if(!stats) return;
+      document.getElementById('sv-emp').textContent = stats.totalEmployees||0;
+      document.getElementById('sv-mis').textContent = stats.openMissions||0;
+    }).getDashboardStats();
+
+  // Redirect if already logged in
+  var s = getSession();
+  if(s && s.token) {
+    window.location.href = s.role==='admin' ? '?page=admin-dashboard' : '?page=emp-dashboard';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RH Platform – Employés</title>
+  <?!= include('isims-styles') ?>
+</head>
+
+<body>
+  <div id="toast-container"></div>
+  <div class="loader-overlay" id="loader">
+    <div class="spinner"></div>
+    <p>Chargement...</p>
+  </div>
+
+  <header class="isims-header">
+    <div class="header-inner">
+      <a class="header-logo" href="?page=landing">
+        <div class="logo-mark">RH</div>
+        <div class="logo-text">
+          <h1>RH Platform</h1><small>ADMINISTRATION</small>
+        </div>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="header-nav">
+        <a onclick="navigate('admin-dashboard')">📊 Dashboard</a>
+        <a class="active" onclick="navigate('employees')">👥 Employés</a>
+        <a onclick="navigate('missions')">🎯 Missions</a>
+        <a onclick="navigate('recommendation')">🤖 IA</a>
+      </nav>
+      <div class="header-user" id="header-user"></div>
+      <button class="btn btn-light btn-sm" style="margin-left:8px" onclick="doLogout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <div class="sub-header">
+    <div class="sub-header-inner">
+      <span>Admin</span><span class="sep">›</span><span class="current">Employés</span>
+    </div>
+  </div>
+
+  <div class="page-layout">
+    <aside class="isims-sidebar">
+      <div class="sidebar-section-title">Navigation</div>
+      <div id="isims-sidebar-nav"></div>
+    </aside>
+
+    <div class="page-content">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 24px;">
+        <div>
+          <div class="page-title">👥 Gestion des Employés</div>
+          <div class="page-subtitle">Annuaire et fiches du personnel</div>
+        </div>
+        <div style="display:flex; gap:12px;">
+          <div class="search-wrap">
+            <input type="text" class="input" id="search-input" placeholder="Rechercher..." oninput="filterTable()"
+              style="width:200px;">
+          </div>
+          <select class="input" id="filter-statut" onchange="filterTable()" style="width:150px">
+            <option value="">Tous statuts</option>
+            <option value="Actif">Actif</option>
+            <option value="En attente">En attente</option>
+            <option value="Inactif">Inactif</option>
+            <option value="Candidat">Candidat</option>
+          </select>
+          <button class="btn btn-primary" onclick="openAddEmployee()">➕ Nouvel employé &amp; Compte</button>
+          <button class="btn btn-outline"
+            onclick="window.open('https://docs.google.com/spreadsheets/d/1mRgdd4dYeVjgrPn_V7abKuuU_OMsU5Hh60y3TmJjx1I/edit', '_blank')">📑
+            Ouvrir Sheet</button>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card sc-blue">
+          <div class="sc-icon">👥</div>
+          <div class="sc-label">Total</div>
+          <div class="sc-value" id="s-total">–</div>
+        </div>
+        <div class="stat-card sc-green">
+          <div class="sc-icon">✅</div>
+          <div class="sc-label">Actifs</div>
+          <div class="sc-value" id="s-actif">–</div>
+        </div>
+        <div class="stat-card sc-orange">
+          <div class="sc-icon">🎓</div>
+          <div class="sc-label">Candidats</div>
+          <div class="sc-value" id="s-cand">–</div>
+        </div>
+        <div class="stat-card sc-red">
+          <div class="sc-icon">⏸️</div>
+          <div class="sc-label">Inactifs</div>
+          <div class="sc-value" id="s-inact">–</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3>Liste des employés</h3>
+            <p id="emp-count">0 employé(s)</p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="loadEmployees()">🔄 Actualiser</button>
+            <button class="btn btn-outline btn-sm" style="background:#fef3c7;font-size:11px" onclick="runDebug()">🔍
+              Debug</button>
+          </div>
+        </div>
+        <div class="table-wrapper" style="padding: 0 22px 22px;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Email</th>
+                <th>Département</th>
+                <th>Poste</th>
+                <th>Statut</th>
+                <th>CIN</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="emp-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Add (Wizard) -->
+  <div class="modal-overlay" id="modal-add">
+    <div class="modal" style="max-width:650px">
+      <div class="modal-header">
+        <h3>➕ Nouvel Employé &amp; Compte d’accès</h3><button class="modal-close"
+          onclick="closeModal('modal-add')">✕</button>
+      </div>
+
+
+      <!-- Progress Bar -->
+      <div class="wizard-progress">
+        <div class="step-line"></div>
+        <div class="step-bubble active" id="b-1">1</div>
+        <div class="step-bubble" id="b-2">2</div>
+        <div class="step-bubble" id="b-3">3</div>
+      </div>
+      <div class="wizard-labels"><span>Perso</span><span>Pro</span><span>🔑 Accès &amp; Skills</span></div>
+
+      <div class="wizard-content" style="padding:20px 0">
+        <!-- Step 1 -->
+        <div class="wizard-step active" id="step-1">
+          <div class="form-grid">
+            <div class="form-group"><label>Nom *</label><input class="input" id="f-nom"></div>
+            <div class="form-group"><label>Prénom *</label><input class="input" id="f-prenom"></div>
+            <div class="form-group full"><label>Email *</label><input class="input" id="f-email" type="email"></div>
+            <div class="form-group"><label>Téléphone</label><input class="input" id="f-tel"></div>
+            <div class="form-group"><label>Numéro CIN *</label><input class="input" id="f-cin" maxlength="8"></div>
+          </div>
+        </div>
+        <!-- Step 2 -->
+        <div class="wizard-step" id="step-2">
+          <div class="form-grid">
+            <div class="form-group"><label>Département</label>
+              <select class="input" id="f-dept">
+                <option>IT</option>
+                <option>Finance</option>
+                <option>Ressources Humaines</option>
+                <option>Marketing</option>
+                <option>Commercial</option>
+                <option>Logistique</option>
+                <option>Ingénierie</option>
+                <option>Direction</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Poste (Catalogue)</label><select class="input" id="f-poste"
+                onchange="onPosteChange()"></select></div>
+            <div class="form-group"><label>Date d'embauche</label><input class="input" id="f-date" type="date"></div>
+            <div class="form-group"><label>Salaire (DT)</label><input class="input" id="f-salaire" type="number"></div>
+            <div class="form-group full"><label>Statut</label>
+              <select class="input" id="f-statut">
+                <option value="Actif">Actif</option>
+                <option value="En attente" selected>En attente (validation)</option>
+                <option value="Inactif">Inactif</option>
+                <option value="Candidat">Candidat</option>
+                <option value="Refusé">Refusé</option>
+              </select>
+            </div>
+          </div>
+          <!-- Live poste skill preview -->
+          <div id="poste-skill-hint"
+            style="display:none;margin-top:12px;background:#f3e8ff;border:1px solid #d8b4fe;border-radius:8px;padding:12px">
+            <div style="font-size:12px;font-weight:700;color:#6f42c1;margin-bottom:6px">🎯 Compétences requises pour ce
+              poste :</div>
+            <div id="poste-skill-chips"></div>
+            <div id="compat-score-bar" style="margin-top:10px;display:none">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:#6f42c1;margin-bottom:4px">
+                <span>Compatibilité avec les skills saisies</span><span id="compat-pct">0%</span>
+              </div>
+              <div style="background:#e9d5ff;border-radius:6px;height:8px">
+                <div id="compat-bar"
+                  style="height:8px;border-radius:6px;background:#6f42c1;width:0%;transition:width .4s"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Step 3 -->
+        <div class="wizard-step" id="step-3">
+          <div
+            style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#166534">
+            🔑 Cette étape crée l’<strong>accès de connexion</strong> de l’employé :
+            l’employé pourra se connecter avec son <strong>CIN + mot de passe</strong>.
+          </div>
+          <div class="form-grid">
+            <div class="form-group full"><label>🔐 Mot de passe initial *</label><input class="input" id="f-password"
+                type="password" placeholder="Min. 6 caractères"></div>
+            <div class="form-group full">
+              <label>Compétences <span style="font-size:11px;color:var(--text-light)">(séparer par des
+                  virgules)</span></label>
+              <input class="input" id="f-competences" placeholder="JavaScript, Python, Gestion projet..."
+                oninput="updateCompatScore()">
+              <div id="f-comp-chips" style="margin-top:6px"></div>
+            </div>
+            <div id="step3-compat" style="display:none" class="form-group full">
+              <div style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:8px;padding:12px">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:#6f42c1;margin-bottom:6px">
+                  <span>🎯 Score compatibilité poste</span><strong id="s3-compat-pct">0%</strong>
+                </div>
+                <div style="background:#e9d5ff;border-radius:6px;height:10px">
+                  <div id="s3-compat-bar"
+                    style="height:10px;border-radius:6px;background:#6f42c1;width:0%;transition:width .5s"></div>
+                </div>
+                <div id="s3-match-chips" style="margin-top:8px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-light" id="btn-prev" onclick="moveStep(-1)" style="display:none">Précédent</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-primary" id="btn-next" onclick="moveStep(1)">Suivant</button>
+        <button class="btn btn-success" id="btn-submit" onclick="submitAdd()" style="display:none">✅
+          Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Edit -->
+  <div class="modal-overlay" id="modal-edit">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>✏️ Modifier employé</h3><button class="modal-close" onclick="closeModal('modal-edit')">✕</button>
+      </div>
+      <input type="hidden" id="e-id">
+      <div class="form-grid">
+        <div class="form-group"><label>Nom</label><input class="input" id="e-nom"></div>
+        <div class="form-group"><label>Prénom</label><input class="input" id="e-prenom"></div>
+        <div class="form-group"><label>Email</label><input class="input" id="e-email" type="email"></div>
+        <div class="form-group"><label>Téléphone</label><input class="input" id="e-tel"></div>
+        <div class="form-group"><label>Département</label>
+          <select class="input" id="e-dept">
+            <option>IT</option>
+            <option>Finance</option>
+            <option>Ressources Humaines</option>
+            <option>Marketing</option>
+            <option>Commercial</option>
+            <option>Logistique</option>
+            <option>Ingénierie</option>
+            <option>Direction</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Poste</label><input class="input" id="e-poste"></div>
+        <div class="form-group"><label>Statut</label>
+          <select class="input" id="e-statut">
+            <option value="Actif">Actif</option>
+            <option value="En attente">En attente</option>
+            <option value="Inactif">Inactif</option>
+            <option value="Candidat">Candidat</option>
+            <option value="Refusé">Refusé</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Salaire</label><input class="input" id="e-salaire" type="number"></div>
+        <div class="form-group full"><label>Compétences</label><input class="input" id="e-competences"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" onclick="closeModal('modal-edit')">Annuler</button>
+        <button class="btn btn-primary" onclick="submitEdit()">💾 Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Create Account -->
+  <div class="modal-overlay" id="modal-account">
+    <div class="modal" style="max-width:450px">
+      <div class="modal-header">
+        <h3>👤 Créer un compte employé</h3><button class="modal-close" onclick="closeModal('modal-account')">✕</button>
+      </div>
+      <div
+        style="background:var(--blue-ultra); padding:12px; border-radius:8px; font-size:13px; color:var(--blue-main); margin-bottom:20px;">
+        ℹ️ L'employé doit d'abord être ajouté dans la liste des employés.
+      </div>
+      <div class="form-grid">
+        <div class="form-group full"><label>Sélectionner l'employé</label>
+          <select class="input" id="acc-emp">
+            <option value="">— choisir —</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>CIN de l'employé *</label>
+          <input class="input" id="acc-cin" placeholder="8 chiffres" maxlength="8">
+        </div>
+        <div class="form-group full"><label>Mot de passe initial *</label>
+          <input class="input" id="acc-password" type="password" placeholder="Min. 6 caractères">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" onclick="closeModal('modal-account')">Annuler</button>
+        <button class="btn btn-primary" onclick="submitCreateAccount()">✅ Créer le compte</button>
+      </div>
+    </div>
+  </div>
+
+  <?!= include('isims-scripts') ?>
+  <script>
+    var session = requireAuth('admin');
+    if (!session) throw new Error('Not authenticated');
+    buildIsimsNav('employees', session.role);
+
+    var allEmployees = [];
+    var allPostes = [];
+
+    function resetAddForm() {
+      var fields = ['f-nom', 'f-prenom', 'f-email', 'f-tel', 'f-poste', 'f-cin', 'f-password', 'f-date', 'f-salaire', 'f-competences'];
+      fields.forEach(function (f) {
+        var el = document.getElementById(f);
+        if (el) el.value = '';
+      });
+      document.getElementById('f-dept').selectedIndex = 0;
+      document.getElementById('f-statut').selectedIndex = 0;
+    }
+
+    var currentStep = 1;
+
+    function moveStep(delta) {
+      var next = currentStep + delta;
+      if (next < 1 || next > 3) return;
+      if (delta > 0 && currentStep === 1) {
+        var nom = document.getElementById('f-nom').value.trim();
+        var email = document.getElementById('f-email').value.trim();
+        var cin = document.getElementById('f-cin').value.trim();
+        if (!nom || !email || !cin) { showToast('Nom, Email et CIN sont obligatoires', 'error'); return; }
+        if (!/^\d{8}$/.test(cin)) { showToast('Le CIN doit comporter exactement 8 chiffres numériques', 'error'); return; }
+        showLoader();
+        callServer('checkCinUnique', [cin], function (err, res) {
+          hideLoader();
+          if (err || !res) { showToast('Erreur lors de la vérification du CIN', 'error'); return; }
+          if (!res.unique) { showToast(res.message || 'Ce CIN existe déjà', 'error'); return; }
+          doMoveStep(next);
+        });
+        return;
+      }
+      doMoveStep(next);
+    }
+
+    function doMoveStep(next) {
+      document.getElementById('step-' + currentStep).classList.remove('active');
+      document.getElementById('b-' + currentStep).classList.remove('active');
+      currentStep = next;
+      document.getElementById('step-' + currentStep).classList.add('active');
+      document.getElementById('b-' + currentStep).classList.add('active');
+      document.getElementById('btn-prev').style.display = currentStep > 1 ? 'block' : 'none';
+      document.getElementById('btn-next').style.display = currentStep < 3 ? 'block' : 'none';
+      document.getElementById('btn-submit').style.display = currentStep === 3 ? 'block' : 'none';
+    }
+
+    function openAddEmployee() {
+      resetAddForm();
+      currentStep = 1;
+      for (var i = 1; i <= 3; i++) {
+        document.getElementById('step-' + i).classList.remove('active');
+        document.getElementById('b-' + i).classList.remove('active');
+      }
+      document.getElementById('step-1').classList.add('active');
+      document.getElementById('b-1').classList.add('active');
+      document.getElementById('btn-prev').style.display = 'none';
+      document.getElementById('btn-next').style.display = 'block';
+      document.getElementById('btn-submit').style.display = 'none';
+      openModal('modal-add');
+    }
+    // ✅ FIXED: single clean loadEmployees
+    function loadEmployees() {
+      showLoader();
+      callServer('getEmployees', [], function (err, data) {
+        hideLoader();
+        if (err) {
+          showToast('Erreur chargement des employés', 'error');
+          return;
+        }
+
+        allEmployees = data || [];
+        renderTable(allEmployees);
+
+        document.getElementById('emp-count').textContent = allEmployees.length + ' employé(s)';
+        document.getElementById('s-total').textContent = allEmployees.length;
+        document.getElementById('s-actif').textContent = allEmployees.filter(function (e) { return e['Statut'] === 'Actif'; }).length;
+        document.getElementById('s-cand').textContent = allEmployees.filter(function (e) {
+          return e['Statut'] === 'Candidat' || e['Statut'] === 'En attente';
+        }).length;
+        document.getElementById('s-inact').textContent = allEmployees.filter(function (e) {
+          return e['Statut'] === 'Inactif' || e['Statut'] === 'Refusé';
+        }).length;
+      });
+
+      // Chargement des postes (inchangé)
+      callServer('getPostes', [], function (err, data) {
+        if (err) return;
+        allPostes = data || [];
+        var sel = document.getElementById('f-poste');
+        sel.innerHTML = '<option value="">— choisir —</option>' + allPostes.map(function (p) {
+          return '<option value="' + esc(p['Titre']) + '" data-comp="' + esc(p['Compétences Requises'] || '') + '">'
+            + esc(p['Titre']) + ' (' + esc(p['Catégorie']) + ')</option>';
+        }).join('');
+      });
+    }
+    function runDebug() {
+      showToast('Debug en cours...', 'info');
+      google.script.run
+        .withSuccessHandler(function (res) {
+          var msg = res.ok
+            ? 'Sheet: "' + res.name + '" | Onglets: ' + res.sheets.map(function (s) { return s.name + '(' + s.rows + ')'; }).join(', ')
+            : 'ERREUR: ' + res.error;
+          alert(msg);
+        })
+        .withFailureHandler(function (e) { alert('Echec: ' + (e.message || e)); })
+        .debugSheets();
+    }
+
+    function onPosteChange() {
+      var sel = document.getElementById('f-poste');
+      var opt = sel.options[sel.selectedIndex];
+      var comp = opt ? (opt.getAttribute('data-comp') || '') : '';
+      var chips = comp.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      var hint = document.getElementById('poste-skill-hint');
+      var chipsEl = document.getElementById('poste-skill-chips');
+      if (!chips.length) { hint.style.display = 'none'; return; }
+      chipsEl.innerHTML = chips.map(function (s) {
+        return '<span class="skill-chip" style="background:#f3e8ff;color:#6f42c1;border:1px solid #d8b4fe">' + esc(s) + '</span>';
+      }).join('');
+      hint.style.display = 'block';
+      updateCompatScore();
+    }
+
+    function updateCompatScore() {
+      var sel = document.getElementById('f-poste');
+      var opt = sel ? sel.options[sel.selectedIndex] : null;
+      var compStr = opt ? (opt.getAttribute('data-comp') || '') : '';
+      var required = compStr.split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
+
+      var rawInput = document.getElementById('f-competences').value;
+      var empChips = rawInput.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      document.getElementById('f-comp-chips').innerHTML = empChips.map(function (s) {
+        return '<span class="skill-chip">' + esc(s) + '</span>';
+      }).join('');
+
+      if (!required.length) {
+        document.getElementById('step3-compat').style.display = 'none';
+        document.getElementById('compat-score-bar').style.display = 'none';
+        return;
+      }
+
+      var empLow = empChips.map(function (s) { return s.toLowerCase(); });
+      var matched = required.filter(function (r) {
+        return empLow.some(function (e) { return e === r || e.indexOf(r) !== -1 || r.indexOf(e) !== -1; });
+      });
+      var pct = Math.round((matched.length / required.length) * 100);
+      var color = pct >= 70 ? '#28a745' : pct >= 40 ? '#fd7e14' : '#dc3545';
+
+      document.getElementById('step3-compat').style.display = 'block';
+      document.getElementById('s3-compat-pct').textContent = pct + '%';
+      document.getElementById('s3-compat-pct').style.color = color;
+      document.getElementById('s3-compat-bar').style.width = pct + '%';
+      document.getElementById('s3-compat-bar').style.background = color;
+      document.getElementById('s3-match-chips').innerHTML = required.map(function (r) {
+        var ok = matched.indexOf(r) !== -1;
+        return '<span class="skill-chip ' + (ok ? 'skill-match' : 'skill-miss') + '">' + (ok ? '✓' : '✗') + ' ' + esc(r) + '</span>';
+      }).join('');
+
+      document.getElementById('compat-score-bar').style.display = 'block';
+      document.getElementById('compat-pct').textContent = pct + '%';
+      document.getElementById('compat-bar').style.width = pct + '%';
+    }
+
+    function openCreateAccount() {
+      var sel = document.getElementById('acc-emp');
+      sel.innerHTML = '<option value="">— choisir —</option>' + allEmployees.map(function (e) {
+        return '<option value="' + esc(e['ID']) + '">' + esc(e['Nom'] + ' ' + e['Prénom']) + '</option>';
+      }).join('');
+      document.getElementById('acc-cin').value = '';
+      document.getElementById('acc-password').value = '';
+      openModal('modal-account');
+    }
+
+    function submitCreateAccount() {
+      var id = document.getElementById('acc-emp').value;
+      var cin = document.getElementById('acc-cin').value.trim();
+      var pwd = document.getElementById('acc-password').value;
+      if (!id || !cin || !pwd) { showToast('Tous les champs sont obligatoires', 'error'); return; }
+      if (cin.length !== 8) { showToast('Le CIN doit comporter 8 chiffres', 'error'); return; }
+      showLoader(true);
+      callServer('registerEmployeeCredentials', [cin, pwd, id], function (err, res) {
+        showLoader(false);
+        if (res && res.success) { showToast('Compte créé avec succès ✅', 'success'); closeModal('modal-account'); }
+        else showToast((res && res.message) || 'Erreur', 'error');
+      });
+    }
+
+    function renderTable(list) {
+      document.getElementById('emp-count').textContent = list.length + ' employé(s)';
+      var tbody = document.getElementById('emp-tbody');
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="icon">👥</div><p>Aucun employé trouvé</p></div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(function (e) {
+        /*var skills = (e['Compétences'] || e['competences'] || '').split(',').slice(0, 3).map(function (s) {
+          return s.trim() ? '<span class="skill-chip" style="font-size:10px;padding:2px 6px">' + esc(s.trim()) + '</span>' : '';
+        }).join('');
+        if (!skills) skills = '<em style="font-size:11px;color:var(--text-light)">—</em>';*/
+        var cin = esc(e['CIN'] || '—');
+
+        var statStyle = e['Statut'] === 'Actif'
+          ? 'background:#d1fae5;color:#065f46;border-color:#a7f3d0'
+          : e['Statut'] === 'En attente'
+            ? 'background:#fef3c7;color:#92400e;border-color:#fcd34d'
+            : (e['Statut'] === 'Inactif' || e['Statut'] === 'Refusé')
+              ? 'background:#fce8ea;color:#b91c1c;border-color:#fca5a5'
+              : 'background:#e0f2fe;color:#0369a1;border-color:#7dd3fc';
+
+        var statusOpts = ['Actif', 'En attente', 'Inactif', 'Candidat', 'Refusé'].map(function (s) {
+          return '<option value="' + s + '"' + (s === e['Statut'] ? ' selected' : '') + '>' + s + '</option>';
+        }).join('');
+
+        var statusSelect = '<select class="input" style="padding:4px 8px;font-size:12px;width:130px;border-radius:6px;' + statStyle +
+          '" onchange="changeStatus(\'' + esc(e['ID']) + '\',this.value)">' + statusOpts + '</select>';
+
+        var safeE = encodeURIComponent(JSON.stringify(e));
+        return '<tr>' +
+          '<td><code style="font-size:11px;color:var(--text-light)">' + esc(e['ID']) + '</code></td>' +
+          '<td><strong>' + esc(e['Nom']) + ' ' + esc(e['Prénom']) + '</strong></td>' +
+          '<td style="font-size:12px">' + esc(e['Email'] || '—') + '</td>' +
+          '<td>' + esc(e['Département'] || '—') + '</td>' +
+          '<td style="font-size:12px">' + esc(e['Poste'] || '—') + '</td>' +
+          '<td>' + statusSelect + '</td>' +
+          '<td><code style="font-size:12px">' + cin + '</code></td>' +
+          //'<td>' + skills + '</td>' +
+          '<td style="white-space:nowrap">' +
+          '<button class="btn btn-outline btn-sm" onclick="editEmployee(decodeEmployee(\'' + safeE + '\'))" title="Modifier">✏️ Modifier</button> ' +
+          '<button class="btn btn-danger btn-sm" onclick="deleteEmp(\'' + esc(e['ID']) + '\')" title="Supprimer">🗑️ Supprimer</button>' +
+          '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    function decodeEmployee(encoded) { return JSON.parse(decodeURIComponent(encoded)); }
+
+    function filterTable() {
+      var q = document.getElementById('search-input').value.toLowerCase();
+      var statut = document.getElementById('filter-statut').value;
+      renderTable(allEmployees.filter(function (e) {
+        var matchQ = (e['Nom'] + ' ' + e['Prénom'] + ' ' + e['Email'] + ' ' + (e['Département'] || '') + ' ' + (e['CIN'] || '')).toLowerCase().indexOf(q) !== -1;
+        var matchS = !statut || e['Statut'] === statut;
+        return matchQ && matchS;
+      }));
+    }
+
+    function changeStatus(empId, newStatut) {
+      callServer('updateEmployee', [empId, { statut: newStatut }], function (err, res) {
+        if (res && res.success) { showToast('Statut mis à jour : ' + newStatut, 'success'); loadEmployees(); }
+        else { showToast((res && res.message) || 'Erreur', 'error'); loadEmployees(); }
+      });
+    }
+
+    function submitAdd() {
+      var data = {
+        nom: document.getElementById('f-nom').value.trim(),
+        prenom: document.getElementById('f-prenom').value.trim(),
+        email: document.getElementById('f-email').value.trim(),
+        telephone: document.getElementById('f-tel').value,
+        departement: document.getElementById('f-dept').value,
+        poste: document.getElementById('f-poste').value,
+        dateEmbauche: document.getElementById('f-date').value,
+        statut: document.getElementById('f-statut').value,
+        salaire: document.getElementById('f-salaire').value,
+        competences: document.getElementById('f-competences').value,
+        cin: document.getElementById('f-cin').value.trim(),
+        password: document.getElementById('f-password').value
+      };
+      if (!data.nom || !data.email || !data.cin || !data.password) {
+        showToast('Veuillez remplir tous les champs obligatoires (Étape 3)', 'error'); return;
+      }
+      showLoader(true);
+      callServer('addEmployee', [data], function (err, res) {
+        showLoader(false);
+        if (res && res.success) { showToast('Employé et compte créés ✅', 'success'); closeModal('modal-add'); loadEmployees(); }
+        else showToast((res && res.message) || 'Erreur lors de la création', 'error');
+      });
+    }
+
+    function editEmployee(e) {
+      document.getElementById('e-id').value = e['ID'];
+      document.getElementById('e-nom').value = e['Nom'];
+      document.getElementById('e-prenom').value = e['Prénom'];
+      document.getElementById('e-email').value = e['Email'];
+      document.getElementById('e-tel').value = e['Téléphone'];
+      document.getElementById('e-dept').value = e['Département'];
+      document.getElementById('e-poste').value = e['Poste'];
+      document.getElementById('e-statut').value = e['Statut'];
+      document.getElementById('e-salaire').value = e['Salaire'];
+      document.getElementById('e-competences').value = e['Compétences'];
+      openModal('modal-edit');
+    }
+
+    function submitEdit() {
+      var id = document.getElementById('e-id').value;
+      var data = {
+        nom: document.getElementById('e-nom').value,
+        prenom: document.getElementById('e-prenom').value,
+        email: document.getElementById('e-email').value,
+        telephone: document.getElementById('e-tel').value,
+        departement: document.getElementById('e-dept').value,
+        poste: document.getElementById('e-poste').value,
+        statut: document.getElementById('e-statut').value,
+        salaire: document.getElementById('e-salaire').value,
+        competences: document.getElementById('e-competences').value
+      };
+      callServer('updateEmployee', [id, data], function (err, res) {
+        if (res && res.success) { showToast('Mis à jour ✅', 'success'); closeModal('modal-edit'); loadEmployees(); }
+        else showToast((res && res.message) || 'Erreur', 'error');
+      });
+    }
+
+    function approveEmp(id, decision) {
+      var msg = decision === 'Actif' ? 'Approuver cet employé ?' : 'Refuser cet employé ?';
+      confirmAction(msg, function () {
+        callServer('approveEmployee', [id, decision], function (err, res) {
+          if (res && res.success) { showToast('Statut mis à jour : ' + decision, 'success'); loadEmployees(); }
+          else showToast((res && res.message) || 'Erreur', 'error');
+        });
+      });
+    }
+
+    function deleteEmp(id) {
+      confirmAction('Supprimer cet employé ?', function () {
+        callServer('deleteEmployee', [id], function (err, res) {
+          if (res && res.success) { showToast('Employé supprimé', 'info'); loadEmployees(); }
+          else showToast('Erreur suppression', 'error');
+        });
+      });
+    }
+
+    loadEmployees();
+  </script>
+
+</body>
+
+</html>
