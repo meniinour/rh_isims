@@ -20,6 +20,87 @@
     .mode-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700; margin-top:8px; text-transform:uppercase; }
     .mode-badge.mode-new { background:#d1fae5; color:#065f46; }
     .mode-badge.mode-edit { background:#fef3c7; color:#92400e; }
+
+    /* ── Smart Assign Modal styles ── */
+    .ai-section {
+      background: linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%);
+      border: 2px solid #a78bfa;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .ai-section-title {
+      font-size: 13px; font-weight: 700; color: #5b21b6;
+      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .reco-card {
+      background: white;
+      border: 1.5px solid #ddd6fe;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .reco-card:hover { border-color: #7c3aed; background: #faf5ff; }
+    .reco-card.selected { border-color: #7c3aed; background: #f5f3ff; box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+    .reco-card .reco-name { font-weight: 700; font-size: 14px; color: #1e1b4b; }
+    .reco-card .reco-dept { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .reco-card .reco-score {
+      background: #7c3aed; color: white;
+      border-radius: 20px; padding: 3px 10px;
+      font-size: 12px; font-weight: 700;
+    }
+    .reco-card .reco-score.score-high { background: #059669; }
+    .reco-card .reco-score.score-mid  { background: #d97706; }
+    .reco-card .reco-score.score-low  { background: #dc2626; }
+    .dept-emp-card {
+      background: white;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dept-emp-card:hover { border-color: #3b82f6; background: #eff6ff; }
+    .dept-emp-card.selected { border-color: #3b82f6; background: #dbeafe; }
+    .dept-emp-card .emp-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white; font-weight: 700; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .dept-emp-card .emp-info .emp-name { font-weight: 600; font-size: 13px; }
+    .dept-emp-card .emp-info .emp-poste { font-size: 11px; color: #6b7280; }
+    .assign-tabs {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .assign-tab {
+      flex: 1; padding: 8px; border-radius: 8px; border: 1.5px solid #e5e7eb;
+      background: white; cursor: pointer; font-size: 12px; font-weight: 600;
+      text-align: center; transition: all 0.2s; color: #374151;
+    }
+    .assign-tab.active { background: #7c3aed; color: white; border-color: #7c3aed; }
+    .assign-tab:first-child.active { background: #7c3aed; border-color: #7c3aed; }
+    .assign-tab:last-child.active { background: #3b82f6; border-color: #3b82f6; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .no-reco {
+      text-align: center; padding: 20px;
+      color: #9ca3af; font-size: 13px;
+    }
+    .ai-loading {
+      text-align: center; padding: 20px;
+      color: #7c3aed; font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -92,10 +173,15 @@
   </div>
 </div>
 
-<!-- Modal Add -->
+<!-- ═══════════════════════════════════════════════════════════
+     Modal Add / Edit Mission
+═══════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-add">
   <div class="modal">
-    <div class="modal-header"><h3 id="modal-add-title">➕ Nouvelle mission</h3><button class="modal-close" onclick="closeModal('modal-add')">✕</button></div>
+    <div class="modal-header">
+      <h3 id="modal-add-title">➕ Nouvelle mission</h3>
+      <button class="modal-close" onclick="closeModal('modal-add')">✕</button>
+    </div>
 
     <!-- Smart Mission Selector -->
     <div class="smart-selector">
@@ -110,8 +196,12 @@
     <div class="form-grid">
       <div class="form-group full"><label>Titre *</label><input class="input" id="f-titre" placeholder="Développement API REST"></div>
       <div class="form-group full"><label>Description</label><textarea class="input" id="f-desc" placeholder="Détails de la mission..."></textarea></div>
-      <div class="form-group"><label>Département</label>
-        <select class="input" id="f-dept"><option>IT</option><option>Finance</option><option>Ressources Humaines</option><option>Marketing</option><option>Commercial</option><option>Logistique</option><option>Ingénierie</option></select>
+      <div class="form-group">
+        <label>Département</label>
+        <select class="input" id="f-dept" onchange="onDeptChange()">
+          <option>IT</option><option>Finance</option><option>Ressources Humaines</option>
+          <option>Marketing</option><option>Commercial</option><option>Logistique</option><option>Ingénierie</option>
+        </select>
       </div>
       <div class="form-group"><label>Priorité</label>
         <select class="input" id="f-prio"><option>Normale</option><option>Haute</option><option>Faible</option></select>
@@ -121,11 +211,60 @@
       <div class="form-group"><label>Statut</label>
         <select class="input" id="f-statut"><option>Ouverte</option><option>En cours</option><option>Terminée</option><option>Annulée</option></select>
       </div>
-      <div class="form-group full"><label>Affecter à (Optionnel)</label>
-        <select class="input" id="f-emp"><option value="">— non affecté —</option></select>
+      <div class="form-group full"><label>Compétences requises <span style="font-size:11px;color:var(--text-light)">(virgules)</span></label>
+        <input class="input" id="f-skills" placeholder="Python, Machine Learning, SQL..." oninput="onSkillsInput()">
       </div>
-      <div class="form-group full"><label>Compétences requises (virgules)</label><input class="input" id="f-skills" placeholder="Python, Machine Learning, SQL..."></div>
+
+      <!-- ── Affectation Intelligente ── -->
+      <div class="form-group full" id="smart-assign-zone" style="display:none">
+        <div style="background:#f0f9ff;border:1.5px solid #38bdf8;border-radius:10px;padding:14px">
+          <div style="font-size:13px;font-weight:700;color:#0369a1;margin-bottom:10px">
+            🤖 Affectation intelligente
+          </div>
+
+          <div class="assign-tabs">
+            <button class="assign-tab active" id="tab-ai-btn" onclick="switchAssignTab('ai')">🤖 IA Recommandation</button>
+            <button class="assign-tab" id="tab-dept-btn" onclick="switchAssignTab('dept')">🏢 Par Département</button>
+          </div>
+
+          <!-- Tab IA -->
+          <div class="tab-panel active" id="tab-ai">
+            <div class="ai-section">
+              <div class="ai-section-title">🤖 Employés recommandés par l'IA</div>
+              <div id="ai-reco-list">
+                <div class="no-reco">Saisissez des compétences requises pour obtenir des recommandations IA</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Département -->
+          <div class="tab-panel" id="tab-dept">
+            <div style="font-size:12px;color:#6b7280;margin-bottom:10px">
+              Tous les employés actifs du département <strong id="dept-label">sélectionné</strong> :
+            </div>
+            <div id="dept-emp-list">
+              <div class="no-reco">Aucun employé actif dans ce département</div>
+            </div>
+          </div>
+
+          <!-- Employé sélectionné -->
+          <div id="selected-emp-zone" style="display:none;margin-top:12px;padding:10px;background:#d1fae5;border-radius:8px;border:1px solid #6ee7b7">
+            <div style="font-size:12px;color:#065f46;font-weight:700">✅ Employé sélectionné :</div>
+            <div id="selected-emp-name" style="font-size:14px;font-weight:700;color:#064e3b;margin-top:4px"></div>
+          </div>
+          <input type="hidden" id="f-emp">
+        </div>
+      </div>
+
+      <!-- Affectation simple si pas de compétences -->
+      <div class="form-group full" id="simple-assign-zone">
+        <label>Affecter à <span style="font-size:11px;color:var(--text-light)">(optionnel)</span></label>
+        <select class="input" id="f-emp-simple" onchange="onSimpleEmpChange()">
+          <option value="">— non affecté —</option>
+        </select>
+      </div>
     </div>
+
     <div class="modal-footer">
       <button class="btn btn-light" onclick="resetMissionForm(); closeModal('modal-add')">Annuler</button>
       <button class="btn btn-primary" id="btn-submit-mission" onclick="submitAdd()">✅ Créer</button>
@@ -133,7 +272,9 @@
   </div>
 </div>
 
-<!-- Modal Edit -->
+<!-- ═══════════════════════════════════════════════════════════
+     Modal Edit
+═══════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-edit">
   <div class="modal">
     <div class="modal-header"><h3>✏️ Modifier mission</h3><button class="modal-close" onclick="closeModal('modal-edit')">✕</button></div>
@@ -161,16 +302,57 @@
   </div>
 </div>
 
-<!-- Modal Assign -->
+<!-- ═══════════════════════════════════════════════════════════
+     Modal Assign (depuis le tableau — bouton 👤)
+═══════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-assign">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-header"><h3>🤖 Affecter un employé</h3><button class="modal-close" onclick="closeModal('modal-assign')">✕</button></div>
-    <input type="hidden" id="a-missionId">
-    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Mission : <strong id="a-missionTitle"></strong></p>
-    <div class="form-group">
-      <label>Choisir un employé</label>
-      <select class="input" id="a-empId"><option value="">— sélectionner —</option></select>
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h3>🤖 Affecter un employé</h3>
+      <button class="modal-close" onclick="closeModal('modal-assign')">✕</button>
     </div>
+    <input type="hidden" id="a-missionId">
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">
+      Mission : <strong id="a-missionTitle"></strong>
+    </p>
+
+    <div class="assign-tabs">
+      <button class="assign-tab active" id="atab-ai-btn" onclick="switchAssignTabModal('ai')">🤖 IA Recommandation</button>
+      <button class="assign-tab" id="atab-dept-btn" onclick="switchAssignTabModal('dept')">🏢 Par Département</button>
+    </div>
+
+    <!-- Tab IA -->
+    <div class="tab-panel active" id="atab-ai">
+      <div class="ai-section">
+        <div class="ai-section-title">🤖 Employés recommandés par l'IA</div>
+        <div id="assign-reco-list">
+          <div class="ai-loading">⏳ Calcul des recommandations IA...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Département -->
+    <div class="tab-panel" id="atab-dept">
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;font-weight:600;color:#374151">Filtrer par département :</label>
+        <select class="input" id="a-dept-filter" onchange="loadDeptEmpsModal()" style="margin-top:4px">
+          <option value="">Tous les départements</option>
+          <option>IT</option><option>Finance</option><option>Ressources Humaines</option>
+          <option>Marketing</option><option>Commercial</option><option>Logistique</option><option>Ingénierie</option>
+        </select>
+      </div>
+      <div id="assign-dept-list">
+        <div class="no-reco">Sélectionnez un département</div>
+      </div>
+    </div>
+
+    <!-- Employé sélectionné -->
+    <div id="a-selected-zone" style="display:none;margin-top:12px;padding:10px;background:#d1fae5;border-radius:8px;border:1px solid #6ee7b7">
+      <div style="font-size:12px;color:#065f46;font-weight:700">✅ Employé sélectionné :</div>
+      <div id="a-selected-name" style="font-size:14px;font-weight:700;color:#064e3b;margin-top:4px"></div>
+    </div>
+    <input type="hidden" id="a-empId">
+
     <div class="modal-footer">
       <button class="btn btn-light" onclick="closeModal('modal-assign')">Annuler</button>
       <button class="btn btn-success" onclick="submitAssign()">✅ Affecter</button>
@@ -181,28 +363,33 @@
 <?!= include('isims-scripts') ?>
 <script>
 var session = requireAuth('admin');
-if(!session) throw new Error('Not authenticated');
+if (!session) throw new Error('Not authenticated');
 buildIsimsNav('missions', session.role);
 
-var allMissions=[], allEmployees=[], editingMissionId=null;
+var allMissions = [], allEmployees = [], editingMissionId = null;
+var selectedEmpId = ''; // pour le formulaire Add
 
+// ══════════════════════════════════════════════════════════════
+//  LOAD
+// ══════════════════════════════════════════════════════════════
 function loadMissions() {
-  callServer('getMissions',[],function(err,data){
-    if(err) return;
-    allMissions=data||[];
+  callServer('getMissions', [], function(err, data) {
+    if (err) { showToast('Erreur chargement missions', 'error'); return; }
+    allMissions = data || [];
     renderTable(allMissions);
-    document.getElementById('s-total').textContent=allMissions.length;
-    document.getElementById('s-open').textContent=allMissions.filter(function(m){return m['Statut']==='Ouverte';}).length;
-    document.getElementById('s-enc').textContent=allMissions.filter(function(m){return m['Statut']==='En cours';}).length;
-    document.getElementById('s-done').textContent=allMissions.filter(function(m){return m['Statut']==='Terminée';}).length;
-    // Update smart selector with open missions
+    document.getElementById('s-total').textContent = allMissions.length;
+    document.getElementById('s-open').textContent  = allMissions.filter(function(m){ return m['Statut']==='Ouverte'; }).length;
+    document.getElementById('s-enc').textContent   = allMissions.filter(function(m){ return m['Statut']==='En cours'; }).length;
+    document.getElementById('s-done').textContent  = allMissions.filter(function(m){ return m['Statut']==='Terminée'; }).length;
     updateMissionSelector();
   });
-  callServer('getEmployees',[],function(err,data){ 
-    if(!err) {
-      allEmployees=data||[];
-      var activeEmps = allEmployees.filter(function(e){return e['Statut']==='Actif';});
-      var sel = document.getElementById('f-emp');
+
+  callServer('getEmployees', [], function(err, data) {
+    if (!err) {
+      allEmployees = data || [];
+      // Populate simple assign dropdown
+      var activeEmps = allEmployees.filter(function(e){ return e['Statut']==='Actif'; });
+      var sel = document.getElementById('f-emp-simple');
       if (sel) {
         sel.innerHTML = '<option value="">— non affecté —</option>' + activeEmps.map(function(e){
           return '<option value="'+esc(e['ID'])+'">'+esc(e['Nom']+' '+e['Prénom'])+' ('+esc(e['Département'])+')</option>';
@@ -212,10 +399,11 @@ function loadMissions() {
   });
 }
 
-// ── Smart Mission Selector ──────────────────────────────────
-
+// ══════════════════════════════════════════════════════════════
+//  SMART MISSION SELECTOR
+// ══════════════════════════════════════════════════════════════
 function updateMissionSelector() {
-  var openMissions = allMissions.filter(function(m){ return m['Statut'] === 'Ouverte' || m['Statut'] === 'En cours'; });
+  var openMissions = allMissions.filter(function(m){ return m['Statut']==='Ouverte'||m['Statut']==='En cours'; });
   var sel = document.getElementById('mission-selector');
   sel.innerHTML = '<option value="">— Nouvelle mission —</option>' +
     openMissions.map(function(m){
@@ -224,13 +412,9 @@ function updateMissionSelector() {
 }
 
 function onMissionSelected() {
-  var sel = document.getElementById('mission-selector');
-  var id = sel.value;
-  if (!id) {
-    resetMissionForm();
-    return;
-  }
-  var m = allMissions.find(function(x){ return x['ID'] === id; });
+  var id = document.getElementById('mission-selector').value;
+  if (!id) { resetMissionForm(); return; }
+  var m = allMissions.find(function(x){ return x['ID']===id; });
   if (!m) return;
   editingMissionId = m['ID'];
   document.getElementById('f-id').value     = m['ID'];
@@ -242,130 +426,330 @@ function onMissionSelected() {
   document.getElementById('f-fin').value    = m['Date Fin']||'';
   document.getElementById('f-statut').value = m['Statut']||'Ouverte';
   document.getElementById('f-skills').value = m['Compétences Requises']||'';
-  // Mode: edit
   document.getElementById('mission-mode-badge').textContent = '✏️ Modification de mission';
   document.getElementById('mission-mode-badge').className   = 'mode-badge mode-edit';
   document.getElementById('btn-submit-mission').textContent  = '💾 Mettre à jour';
   document.getElementById('modal-add-title').textContent     = '✏️ Modifier la mission';
+  // Re-run smart assign based on loaded skills
+  onSkillsInput();
 }
 
 function resetMissionForm() {
   editingMissionId = null;
-  document.getElementById('f-id').value     = '';
-  document.getElementById('f-titre').value  = '';
-  document.getElementById('f-desc').value   = '';
-  document.getElementById('f-skills').value = '';
-  document.getElementById('f-emp').value    = '';
-  document.getElementById('mission-selector').value          = '';
-  document.getElementById('mission-mode-badge').textContent  = '✨ Nouvelle mission';
-  document.getElementById('mission-mode-badge').className    = 'mode-badge mode-new';
-  document.getElementById('btn-submit-mission').textContent   = '✅ Créer';
-  document.getElementById('modal-add-title').textContent      = '➕ Nouvelle mission';
+  selectedEmpId = '';
+  ['f-id','f-titre','f-desc','f-skills'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('f-emp').value = '';
+  document.getElementById('f-emp-simple').value = '';
+  document.getElementById('mission-selector').value         = '';
+  document.getElementById('mission-mode-badge').textContent = '✨ Nouvelle mission';
+  document.getElementById('mission-mode-badge').className   = 'mode-badge mode-new';
+  document.getElementById('btn-submit-mission').textContent  = '✅ Créer';
+  document.getElementById('modal-add-title').textContent     = '➕ Nouvelle mission';
+  document.getElementById('smart-assign-zone').style.display = 'none';
+  document.getElementById('simple-assign-zone').style.display = 'block';
+  document.getElementById('selected-emp-zone').style.display = 'none';
+  document.getElementById('ai-reco-list').innerHTML = '<div class="no-reco">Saisissez des compétences requises pour obtenir des recommandations IA</div>';
 }
 
+// ══════════════════════════════════════════════════════════════
+//  AFFECTATION INTELLIGENTE — dans le formulaire Add
+// ══════════════════════════════════════════════════════════════
+var skillsTimer = null;
+
+function onSkillsInput() {
+  var skills = document.getElementById('f-skills').value.trim();
+  if (skills.length > 2) {
+    // Afficher la zone intelligente
+    document.getElementById('smart-assign-zone').style.display = 'block';
+    document.getElementById('simple-assign-zone').style.display = 'none';
+    // Mettre à jour le tab Département
+    onDeptChange();
+    // Calcul IA avec debounce
+    clearTimeout(skillsTimer);
+    skillsTimer = setTimeout(function(){ computeAIReco(); }, 500);
+  } else {
+    document.getElementById('smart-assign-zone').style.display = 'none';
+    document.getElementById('simple-assign-zone').style.display = 'block';
+  }
+}
+
+function onDeptChange() {
+  var dept = document.getElementById('f-dept').value;
+  document.getElementById('dept-label').textContent = dept;
+  // Filtrer les employés actifs du département
+  var deptEmps = allEmployees.filter(function(e){ return e['Statut']==='Actif' && e['Département']===dept; });
+  renderDeptEmps(deptEmps, 'dept-emp-list', selectEmpInForm);
+}
+
+function computeAIReco() {
+  var skills = document.getElementById('f-skills').value.trim();
+  if (!skills) return;
+  var requiredSkills = skills.split(',').map(function(s){ return s.trim().toLowerCase(); }).filter(Boolean);
+
+  // Scorer chaque employé actif
+  var scored = allEmployees
+    .filter(function(e){ return e['Statut']==='Actif'; })
+    .map(function(e) {
+      var empSkills = (e['Compétences']||e['competences']||'').split(',').map(function(s){ return s.trim().toLowerCase(); }).filter(Boolean);
+      var matched = requiredSkills.filter(function(r){
+        return empSkills.some(function(es){ return es===r || es.indexOf(r)!==-1 || r.indexOf(es)!==-1; });
+      });
+      var score = requiredSkills.length > 0 ? Math.round((matched.length/requiredSkills.length)*100) : 0;
+      return { emp: e, score: score, matched: matched };
+    })
+    .filter(function(x){ return x.score > 0; })
+    .sort(function(a,b){ return b.score - a.score; })
+    .slice(0, 5);
+
+  renderAIReco(scored, 'ai-reco-list', selectEmpInForm);
+}
+
+function selectEmpInForm(empId, empName) {
+  selectedEmpId = empId;
+  document.getElementById('f-emp').value = empId;
+  document.getElementById('selected-emp-name').textContent = empName;
+  document.getElementById('selected-emp-zone').style.display = 'block';
+  // Visuellement marquer la sélection
+  document.querySelectorAll('.reco-card, .dept-emp-card').forEach(function(c){ c.classList.remove('selected'); });
+  var card = document.querySelector('[data-empid="'+empId+'"]');
+  if (card) card.classList.add('selected');
+}
+
+function onSimpleEmpChange() {
+  selectedEmpId = document.getElementById('f-emp-simple').value;
+}
+
+function switchAssignTab(tab) {
+  ['ai','dept'].forEach(function(t){
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('tab-'+t+'-btn').classList.toggle('active', t===tab);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MODAL ASSIGN (bouton 👤 dans le tableau)
+// ══════════════════════════════════════════════════════════════
+function openAssign(missionId, missionTitle) {
+  document.getElementById('a-missionId').value = missionId;
+  document.getElementById('a-missionTitle').textContent = missionTitle;
+  document.getElementById('a-empId').value = '';
+  document.getElementById('a-selected-zone').style.display = 'none';
+  document.getElementById('assign-dept-list').innerHTML = '<div class="no-reco">Sélectionnez un département</div>';
+  document.getElementById('a-dept-filter').value = '';
+
+  // Charger recommandations IA pour cette mission
+  var mission = allMissions.find(function(m){ return m['ID']===missionId; });
+  if (mission) {
+    var missionSkills = (mission['Compétences Requises']||'').split(',').map(function(s){ return s.trim().toLowerCase(); }).filter(Boolean);
+    if (missionSkills.length > 0) {
+      var scored = allEmployees
+        .filter(function(e){ return e['Statut']==='Actif'; })
+        .map(function(e) {
+          var empSkills = (e['Compétences']||e['competences']||'').split(',').map(function(s){ return s.trim().toLowerCase(); }).filter(Boolean);
+          var matched = missionSkills.filter(function(r){
+            return empSkills.some(function(es){ return es===r || es.indexOf(r)!==-1 || r.indexOf(es)!==-1; });
+          });
+          var score = Math.round((matched.length/missionSkills.length)*100);
+          return { emp: e, score: score, matched: matched };
+        })
+        .filter(function(x){ return x.score > 0; })
+        .sort(function(a,b){ return b.score - a.score; })
+        .slice(0, 5);
+      renderAIReco(scored, 'assign-reco-list', selectEmpInModal);
+    } else {
+      document.getElementById('assign-reco-list').innerHTML = '<div class="no-reco">Cette mission n\'a pas de compétences requises définies.<br>Utilisez l\'onglet "Par Département".</div>';
+    }
+  }
+
+  openModal('modal-assign');
+}
+
+function loadDeptEmpsModal() {
+  var dept = document.getElementById('a-dept-filter').value;
+  var filtered = allEmployees.filter(function(e){
+    return e['Statut']==='Actif' && (!dept || e['Département']===dept);
+  });
+  renderDeptEmps(filtered, 'assign-dept-list', selectEmpInModal);
+}
+
+function selectEmpInModal(empId, empName) {
+  document.getElementById('a-empId').value = empId;
+  document.getElementById('a-selected-name').textContent = empName;
+  document.getElementById('a-selected-zone').style.display = 'block';
+  document.querySelectorAll('.reco-card, .dept-emp-card').forEach(function(c){ c.classList.remove('selected'); });
+  var card = document.querySelector('[data-empid="'+empId+'"]');
+  if (card) card.classList.add('selected');
+}
+
+function switchAssignTabModal(tab) {
+  ['ai','dept'].forEach(function(t){
+    document.getElementById('atab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('atab-'+t+'-btn').classList.toggle('active', t===tab);
+  });
+}
+
+function submitAssign() {
+  var mId = document.getElementById('a-missionId').value;
+  var eId = document.getElementById('a-empId').value;
+  if (!eId) { showToast('Sélectionnez un employé', 'error'); return; }
+  callServer('assignEmployeeToMission', [mId, eId], function(err, res) {
+    if (res && res.success) { showToast('Employé affecté ✅', 'success'); closeModal('modal-assign'); loadMissions(); }
+    else showToast((res&&res.message)||'Erreur', 'error');
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RENDER HELPERS
+// ══════════════════════════════════════════════════════════════
+function renderAIReco(scored, containerId, onSelect) {
+  var el = document.getElementById(containerId);
+  if (!scored.length) {
+    el.innerHTML = '<div class="no-reco">😕 Aucun employé ne correspond aux compétences requises</div>';
+    return;
+  }
+  el.innerHTML = scored.map(function(x) {
+    var scoreClass = x.score >= 70 ? 'score-high' : x.score >= 40 ? 'score-mid' : 'score-low';
+    var matchedStr = x.matched.length ? '<span style="font-size:10px;color:#6b7280">Compétences : '+esc(x.matched.join(', '))+'</span>' : '';
+    return '<div class="reco-card" data-empid="'+esc(x.emp['ID'])+'" onclick="('+onSelect.toString()+')(\''+esc(x.emp['ID'])+'\',\''+esc(x.emp['Nom']+' '+x.emp['Prénom'])+'\')">' +
+      '<div>' +
+        '<div class="reco-name">'+esc(x.emp['Nom']+' '+x.emp['Prénom'])+'</div>' +
+        '<div class="reco-dept">'+esc(x.emp['Département']||'')+(x.emp['Poste']?' — '+esc(x.emp['Poste']):'')+'</div>' +
+        matchedStr +
+      '</div>' +
+      '<div class="reco-score '+scoreClass+'">'+x.score+'%</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderDeptEmps(emps, containerId, onSelect) {
+  var el = document.getElementById(containerId);
+  if (!emps.length) {
+    el.innerHTML = '<div class="no-reco">Aucun employé actif dans ce département</div>';
+    return;
+  }
+  el.innerHTML = emps.map(function(e) {
+    var initials = (e['Nom']||'?').charAt(0) + (e['Prénom']||'?').charAt(0);
+    return '<div class="dept-emp-card" data-empid="'+esc(e['ID'])+'" onclick="('+onSelect.toString()+')(\''+esc(e['ID'])+'\',\''+esc(e['Nom']+' '+e['Prénom'])+'\')">' +
+      '<div class="emp-avatar">'+esc(initials.toUpperCase())+'</div>' +
+      '<div class="emp-info">' +
+        '<div class="emp-name">'+esc(e['Nom']+' '+e['Prénom'])+'</div>' +
+        '<div class="emp-poste">'+esc(e['Poste']||e['Département']||'')+'</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TABLE
+// ══════════════════════════════════════════════════════════════
 function renderTable(list) {
-  document.getElementById('mis-count').textContent=list.length+' mission(s)';
-  var tbody=document.getElementById('mis-tbody');
-  if(!list.length){ tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">🎯</div><p>Aucune mission</p></div></td></tr>'; return; }
-  tbody.innerHTML=list.map(function(m){
-    var skills=(m['Compétences Requises']||'').split(',').slice(0,2).map(function(s){return s.trim() ? '<span class="skill-chip">'+esc(s.trim())+'</span>' : '';}).join(' ');
-    return '<tr>'+
-      '<td><strong>'+esc(m['Titre'])+'</strong><br><small style="color:var(--text-muted)">'+esc(m['ID'])+'</small></td>'+
-      '<td>'+esc(m['Département'])+'</td>'+
-      '<td>'+statusBadge(m['Priorité'])+'</td>'+
-      '<td>'+statusBadge(m['Statut'])+'</td>'+
-      '<td>'+skills+'</td>'+
-      '<td>'+(m['Employé Affecté']?'<span class="badge badge-green">'+esc(m['Employé Affecté'])+'</span>':'<span style="color:var(--text-muted);font-size:12px">Non affecté</span>')+'</td>'+
-      '<td style="font-size:11px">'+fmtDate(m['Date Début'])+'<br>→ '+fmtDate(m['Date Fin'])+'</td>'+
-      '<td style="white-space:nowrap">'+
-        '<button class="btn btn-outline btn-sm" title="Modifier" onclick="editMission(\''+esc(m['ID'])+'\')">✏️</button> '+
-        '<button class="btn btn-success btn-sm" title="Affecter" onclick="openAssign(\''+esc(m['ID'])+'\',\''+esc(m['Titre'])+'\')">👤</button> '+
-        '<button class="btn btn-danger btn-sm" title="Supprimer" onclick="deleteMis(\''+esc(m['ID'])+'\')">🗑️</button>'+
-      '</td>'+
+  document.getElementById('mis-count').textContent = list.length + ' mission(s)';
+  var tbody = document.getElementById('mis-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="icon">🎯</div><p>Aucune mission</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(function(m) {
+    var skills = (m['Compétences Requises']||'').split(',').slice(0,2).map(function(s){
+      return s.trim() ? '<span class="skill-chip">'+esc(s.trim())+'</span>' : '';
+    }).join(' ');
+    return '<tr>' +
+      '<td><strong>'+esc(m['Titre'])+'</strong><br><small style="color:var(--text-muted)">'+esc(m['ID'])+'</small></td>' +
+      '<td>'+esc(m['Département'])+'</td>' +
+      '<td>'+statusBadge(m['Priorité'])+'</td>' +
+      '<td>'+statusBadge(m['Statut'])+'</td>' +
+      '<td>'+skills+'</td>' +
+      '<td>'+(m['Employé Affecté']
+        ? '<span class="badge badge-green">'+esc(m['Employé Affecté'])+'</span>'
+        : '<span style="color:var(--text-muted);font-size:12px">Non affecté</span>')+'</td>' +
+      '<td style="font-size:11px">'+fmtDate(m['Date Début'])+'<br>→ '+fmtDate(m['Date Fin'])+'</td>' +
+      '<td style="white-space:nowrap">' +
+        '<button class="btn btn-outline btn-sm" title="Modifier" onclick="editMission(\''+esc(m['ID'])+'\')">✏️</button> ' +
+        '<button class="btn btn-success btn-sm" title="Affecter" onclick="openAssign(\''+esc(m['ID'])+'\',\''+esc(m['Titre'])+'\')">👤</button> ' +
+        '<button class="btn btn-danger btn-sm" title="Supprimer" onclick="deleteMis(\''+esc(m['ID'])+'\')">🗑️</button>' +
+      '</td>' +
     '</tr>';
   }).join('');
 }
 
-function filterTable(){
-  var q=document.getElementById('search-input').value.toLowerCase();
-  renderTable(allMissions.filter(function(m){return (m['Titre']+m['Département']+m['Statut']).toLowerCase().indexOf(q)!==-1;}));
+function filterTable() {
+  var q = document.getElementById('search-input').value.toLowerCase();
+  renderTable(allMissions.filter(function(m){
+    return (m['Titre']+m['Département']+m['Statut']).toLowerCase().indexOf(q) !== -1;
+  }));
 }
 
-function submitAdd(){
-  var data={
-    titre    : document.getElementById('f-titre').value.trim(),
-    description : document.getElementById('f-desc').value,
-    departement : document.getElementById('f-dept').value,
-    priorite    : document.getElementById('f-prio').value,
-    dateDebut   : document.getElementById('f-debut').value,
-    dateFin     : document.getElementById('f-fin').value,
-    statut      : document.getElementById('f-statut').value,
-    competencesRequises : document.getElementById('f-skills').value,
-    employeAffecteId    : document.getElementById('f-emp').value
+// ══════════════════════════════════════════════════════════════
+//  SUBMIT ADD / EDIT
+// ══════════════════════════════════════════════════════════════
+function submitAdd() {
+  // Récupérer l'ID employé depuis la zone active
+  var empId = document.getElementById('f-emp').value || document.getElementById('f-emp-simple').value || '';
+  var data = {
+    titre              : document.getElementById('f-titre').value.trim(),
+    description        : document.getElementById('f-desc').value,
+    departement        : document.getElementById('f-dept').value,
+    priorite           : document.getElementById('f-prio').value,
+    dateDebut          : document.getElementById('f-debut').value,
+    dateFin            : document.getElementById('f-fin').value,
+    statut             : document.getElementById('f-statut').value,
+    competencesRequises: document.getElementById('f-skills').value,
+    employeAffecteId   : empId
   };
-  if(!data.titre){showToast('Titre obligatoire','error');return;}
+  if (!data.titre) { showToast('Titre obligatoire', 'error'); return; }
 
   if (editingMissionId) {
-    // UPDATE existing mission
-    callServer('updateMission',[editingMissionId, data],function(err,res){
-      if(res&&res.success){
-        showToast('Mission mise à jour ✅','success');
-        closeModal('modal-add');
-        resetMissionForm();
-        loadMissions();
-      }else showToast((res&&res.message)||'Erreur','error');
+    callServer('updateMission', [editingMissionId, data], function(err, res) {
+      if (res && res.success) { showToast('Mission mise à jour ✅', 'success'); closeModal('modal-add'); resetMissionForm(); loadMissions(); }
+      else showToast((res&&res.message)||'Erreur', 'error');
     });
   } else {
-    // ADD new mission
-    callServer('addMission',[data],function(err,res){
-      if(res&&res.success){
-        showToast('Mission créée ✅','success');
-        closeModal('modal-add');
-        resetMissionForm();
-        loadMissions();
-      }else showToast((res&&res.message)||'Erreur','error');
+    callServer('addMission', [data], function(err, res) {
+      if (res && res.success) { showToast('Mission créée ✅', 'success'); closeModal('modal-add'); resetMissionForm(); loadMissions(); }
+      else showToast((res&&res.message)||'Erreur', 'error');
     });
   }
 }
 
-function editMission(id){
-  var m=allMissions.find(function(x){return x['ID']===id;});
-  if(!m) return;
-  document.getElementById('e-id').value=m['ID'];
-  document.getElementById('e-titre').value=m['Titre'];
-  document.getElementById('e-desc').value=m['Description'];
-  document.getElementById('e-dept').value=m['Département'];
-  document.getElementById('e-prio').value=m['Priorité'];
-  document.getElementById('e-debut').value=m['Date Début'];
-  document.getElementById('e-fin').value=m['Date Fin'];
-  document.getElementById('e-statut').value=m['Statut'];
-  document.getElementById('e-skills').value=m['Compétences Requises'];
+function editMission(id) {
+  var m = allMissions.find(function(x){ return x['ID']===id; });
+  if (!m) return;
+  document.getElementById('e-id').value    = m['ID'];
+  document.getElementById('e-titre').value = m['Titre'];
+  document.getElementById('e-desc').value  = m['Description'];
+  document.getElementById('e-dept').value  = m['Département'];
+  document.getElementById('e-prio').value  = m['Priorité'];
+  document.getElementById('e-debut').value = m['Date Début'];
+  document.getElementById('e-fin').value   = m['Date Fin'];
+  document.getElementById('e-statut').value= m['Statut'];
+  document.getElementById('e-skills').value= m['Compétences Requises'];
   openModal('modal-edit');
 }
 
-function submitEdit(){
-  var id=document.getElementById('e-id').value;
-  var data={titre:document.getElementById('e-titre').value,description:document.getElementById('e-desc').value,departement:document.getElementById('e-dept').value,priorite:document.getElementById('e-prio').value,dateDebut:document.getElementById('e-debut').value,dateFin:document.getElementById('e-fin').value,statut:document.getElementById('e-statut').value,competencesRequises:document.getElementById('e-skills').value};
-  callServer('updateMission',[id,data],function(err,res){if(res&&res.success){showToast('Mission mise à jour ✅','success');closeModal('modal-edit');loadMissions();}else showToast('Erreur','error');});
+function submitEdit() {
+  var id = document.getElementById('e-id').value;
+  var data = {
+    titre: document.getElementById('e-titre').value,
+    description: document.getElementById('e-desc').value,
+    departement: document.getElementById('e-dept').value,
+    priorite: document.getElementById('e-prio').value,
+    dateDebut: document.getElementById('e-debut').value,
+    dateFin: document.getElementById('e-fin').value,
+    statut: document.getElementById('e-statut').value,
+    competencesRequises: document.getElementById('e-skills').value
+  };
+  callServer('updateMission', [id, data], function(err, res) {
+    if (res && res.success) { showToast('Mission mise à jour ✅', 'success'); closeModal('modal-edit'); loadMissions(); }
+    else showToast('Erreur', 'error');
+  });
 }
 
-function deleteMis(id){
-  confirmAction('Supprimer cette mission ?',function(){callServer('deleteMission',[id],function(err,res){if(res&&res.success){showToast('Supprimée','info');loadMissions();}});});
-}
-
-function openAssign(missionId, missionTitle){
-  document.getElementById('a-missionId').value=missionId;
-  document.getElementById('a-missionTitle').textContent=missionTitle;
-  var sel=document.getElementById('a-empId');
-  sel.innerHTML='<option value="">— sélectionner —</option>'+allEmployees.filter(function(e){return e['Statut']==='Actif';}).map(function(e){return '<option value="'+esc(e['ID'])+'">'+esc(e['Nom']+' '+e['Prénom'])+' ('+esc(e['Département'])+')</option>';}).join('');
-  openModal('modal-assign');
-}
-
-function submitAssign(){
-  var mId=document.getElementById('a-missionId').value;
-  var eId=document.getElementById('a-empId').value;
-  if(!eId){showToast('Sélectionnez un employé','error');return;}
-  callServer('assignEmployeeToMission',[mId,eId],function(err,res){if(res&&res.success){showToast('Employé affecté ✅','success');closeModal('modal-assign');loadMissions();}else showToast((res&&res.message)||'Erreur','error');});
+function deleteMis(id) {
+  confirmAction('Supprimer cette mission ?', function() {
+    callServer('deleteMission', [id], function(err, res) {
+      if (res && res.success) { showToast('Supprimée', 'info'); loadMissions(); }
+    });
+  });
 }
 
 loadMissions();

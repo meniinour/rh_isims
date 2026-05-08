@@ -2,35 +2,70 @@
  * ============================================================
  *  MISSIONS MODULE
  *  CRUD + Absences + Admin validation for absences
- *  FIX G: Employee assignment uses ID, not name
+ *  FIX: getMissions() via CSV export (same as Postes method)
+ *  NEW: getEmployeesByDeptForMission() for smart assignment
  * ============================================================
  */
 
+var EXTERNAL_MISSIONS_SHEET_ID = '1mRgdd4dYeVjgrPn_V7abKuuU_OMsU5Hh60y3TmJjx1I';
+
 /**
- * Get all missions
+ * Get all missions — via UrlFetchApp CSV export
+ * Exactement comme importPostesFromExternalSheet() dans Postes.gs
  */
 function getMissions() {
   try {
-    var ss = getSpreadsheet();
-    var sheet = ss.getSheetByName(CONFIG.SHEET_MISSIONS);
-    if (!sheet) return [];
-    var data = sheet.getDataRange().getValues();
-    if (data.length <= 1) return [];
-    var headers = data[0];
-    return data.slice(1).map(function(row) {
+    var url = 'https://docs.google.com/spreadsheets/d/' + EXTERNAL_MISSIONS_SHEET_ID
+            + '/export?format=csv&sheet=Missions';
+
+    var response = UrlFetchApp.fetch(url);
+    var csvContent = response.getContentText();
+    var rows = Utilities.parseCsv(csvContent);
+
+    if (rows.length <= 1) {
+      Logger.log('⚠️ getMissions CSV: feuille vide');
+      return [];
+    }
+
+    var headers = rows[0];
+    Logger.log('📋 getMissions headers: ' + JSON.stringify(headers));
+
+    return rows.slice(1).map(function(row) {
       var obj = {};
-      headers.forEach(function(h, i) { obj[h] = row[i]; });
+      headers.forEach(function(h, i) {
+        obj[h] = row[i] !== undefined ? row[i] : '';
+      });
       return obj;
+    }).filter(function(row) {
+      return row['ID'] && String(row['ID']).trim() !== '';
+    });
+
+  } catch (e) {
+    Logger.log('❌ getMissions CSV error: ' + e.message);
+    return [];
+  }
+}
+
+/**
+ * NEW: Get employees filtered by department — used for smart assignment in HTML
+ * Returns employees with Statut = 'Actif' in the given department
+ */
+function getEmployeesByDeptForMission(departement) {
+  try {
+    var employees = getEmployees();
+    return employees.filter(function(e) {
+      var matchDept = !departement || String(e['Département']).trim() === String(departement).trim();
+      var isActif   = e['Statut'] === 'Actif';
+      return matchDept && isActif;
     });
   } catch (e) {
-    Logger.log('❌ getMissions error: ' + e.message);
+    Logger.log('❌ getEmployeesByDeptForMission error: ' + e.message);
     return [];
   }
 }
 
 /**
  * Add a new mission
- * FIX G: employeAffecte now stored as the employee's full name (resolved from ID if given)
  */
 function addMission(data) {
   try {
@@ -39,13 +74,11 @@ function addMission(data) {
     if (!sheet) return { success: false, message: 'Feuille Missions introuvable.' };
     var id = generateId('MIS');
 
-    // Resolve employee name from ID if provided
     var employeeDisplay = '';
     if (data.employeAffecteId) {
       var emp = getEmployeeById(data.employeAffecteId);
       employeeDisplay = emp ? (emp['Nom'] + ' ' + emp['Prénom']) : data.employeAffecteId;
     } else if (data.employeAffecte) {
-      // Fallback: if a name string was passed directly
       employeeDisplay = data.employeAffecte;
     }
 
@@ -64,7 +97,6 @@ function addMission(data) {
       employeeDisplay
     ]);
 
-    // If employee was assigned at creation, also log in Affectations
     if (data.employeAffecteId) {
       var aSheet = ss.getSheetByName(CONFIG.SHEET_AFFECTATIONS);
       if (aSheet) {
@@ -145,7 +177,6 @@ function deleteMission(id) {
 
 /**
  * Assign an employee to a mission
- * FIX G: employeeId is now always an ID, resolved to name for display
  */
 function assignEmployeeToMission(missionId, employeeId) {
   try {
@@ -164,7 +195,6 @@ function assignEmployeeToMission(missionId, employeeId) {
         mSheet.getRange(i + 1, 10).setValue(employeeName);
         mSheet.getRange(i + 1, 7).setValue('En cours');
 
-        // Log in Affectations sheet
         var aSheet = ss.getSheetByName(CONFIG.SHEET_AFFECTATIONS);
         if (aSheet) {
           var score = recommendEmployeesForMission(missionId);
@@ -173,7 +203,6 @@ function assignEmployeeToMission(missionId, employeeId) {
             var found = score.recommendations.find(function(r) { return r.id === employeeId; });
             if (found) empScore = found.score;
           }
-
           aSheet.appendRow([
             generateId('AFF'),
             missionId,
@@ -195,12 +224,9 @@ function assignEmployeeToMission(missionId, employeeId) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  ABSENCES (moved here from Missions.gs – kept for backwards compat)
+//  ABSENCES
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Get absences
- */
 function getAbsences() {
   try {
     var ss = getSpreadsheet();
@@ -220,10 +246,6 @@ function getAbsences() {
   }
 }
 
-/**
- * Add absence record
- * FIX F: employeId is properly validated before use
- */
 function addAbsence(data) {
   try {
     var ss = getSpreadsheet();
@@ -232,14 +254,12 @@ function addAbsence(data) {
     if (!data.employeId) return { success: false, message: 'Employé obligatoire.' };
 
     var id = generateId('ABS');
-
     var d1 = new Date(data.dateDebut);
     var d2 = new Date(data.dateFin);
     if (isNaN(d1) || isNaN(d2)) return { success: false, message: 'Dates invalides.' };
     if (d2 < d1) return { success: false, message: 'La date de fin doit être après la date de début.' };
 
     var duration = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-
     var employee = getEmployeeById(data.employeId);
     var empName = employee ? (employee['Nom'] + ' ' + employee['Prénom']) : String(data.employeId);
 
@@ -252,11 +272,10 @@ function addAbsence(data) {
       data.dateFin   || '',
       duration,
       data.motif     || '',
-      'En attente',   // Always start as pending – admin must approve
+      'En attente',
       data.justificatifUrl || ''
     ]);
 
-    // ✅ Notify admin of new absence request
     var empCIN = employee ? String(employee['CIN'] || data.employeId) : data.employeId;
     try {
       notifyAdmin(
@@ -273,9 +292,6 @@ function addAbsence(data) {
   }
 }
 
-/**
- * Update absence status (Admin validation)
- */
 function updateAbsenceStatus(id, statut) {
   try {
     if (statut !== 'Approuvée' && statut !== 'Refusée' && statut !== 'En attente') {
@@ -289,20 +305,15 @@ function updateAbsenceStatus(id, statut) {
       if (String(rows[i][0]) === String(id)) {
         sheet.getRange(i + 1, 9).setValue(statut);
 
-        // ✅ Notify the employee
-        var empId  = String(rows[i][1]);
+        var empId = String(rows[i][1]);
         var employees = getEmployees();
         var emp = employees.find(function(e) { return String(e['ID']) === empId; });
         if (emp && emp['CIN']) {
           var cin = String(emp['CIN']);
           if (statut === 'Approuvée') {
-            notifyEmployee(cin,
-              '✅ Votre demande d\'absence a été approuvée.',
-              'success', 'absences');
+            notifyEmployee(cin, '✅ Votre demande d\'absence a été approuvée.', 'success', 'absences');
           } else if (statut === 'Refusée') {
-            notifyEmployee(cin,
-              '❌ Votre demande d\'absence a été refusée. Contactez votre RH.',
-              'danger', 'absences');
+            notifyEmployee(cin, '❌ Votre demande d\'absence a été refusée. Contactez votre RH.', 'danger', 'absences');
           }
         }
 
