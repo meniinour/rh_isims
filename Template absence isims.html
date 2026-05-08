@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Demande d'Absence – ISIMS</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Montserrat:wght@400;500;600;700&display=swap');
+
+        :root {
+            --navy: #0d3560;
+            --blue: #1a5ea8;
+            --gold: #8cb43a;
+            --light: #eef4fb;
+            --grey: #6b7280;
+            --border: #c8d8ec;
+            --text: #1a2b3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #f0f4f8;
+            color: var(--text);
+            padding: 32px 16px;
+        }
+
+        /* ── Page wrapper ── */
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: #fff;
+            box-shadow: 0 4px 32px rgba(13, 53, 96, .18);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ── Decorative stripe ── */
+        .stripe-top {
+            height: 8px;
+            background: linear-gradient(90deg, var(--navy) 0%, var(--blue) 60%, var(--gold) 100%);
+        }
+
+        .stripe-bottom {
+            height: 5px;
+            background: linear-gradient(90deg, var(--gold) 0%, var(--blue) 40%, var(--navy) 100%);
+        }
+
+        /* ── Header ── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 32px 16px;
+            border-bottom: 2px solid var(--border);
+            gap: 16px;
+        }
+
+        .logo-block img {
+            height: 64px;
+            display: block;
+        }
+
+        .title-block {
+            flex: 1;
+            text-align: center;
+        }
+
+        .title-block .ministry {
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: .14em;
+            color: var(--grey);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .title-block h1 {
+            font-family: 'EB Garamond', serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--navy);
+            line-height: 1.2;
+        }
+
+        .title-block .subtitle {
+            font-size: 10px;
+            color: var(--blue);
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+
+        .ref-block {
+            text-align: right;
+            min-width: 110px;
+        }
+
+        .ref-block .ref-label {
+            font-size: 8.5px;
+            color: var(--grey);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+        }
+
+        .ref-block .ref-val {
+            font-family: 'EB Garamond', serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--navy);
+            border: 1.5px solid var(--border);
+            border-radius: 4px;
+            padding: 3px 8px;
+            display: inline-block;
+            margin-top: 3px;
+            min-width: 90px;
+        }
+
+        .ref-block .date-label {
+            font-size: 8.5px;
+            color: var(--grey);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            margin-top: 6px;
+        }
+
+        .ref-block .date-val {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* ── Body ── */
+        .body {
+            padding: 18px 32px 24px;
+        }
+
+        /* Section title */
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 20px 0 10px;
+        }
+
+        .section-title .bar {
+            width: 4px;
+            height: 18px;
+            background: linear-gradient(180deg, var(--blue), var(--gold));
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .section-title span {
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--navy);
+        }
+
+        /* Grid fields */
+        .grid {
+            display: grid;
+            gap: 0;
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .grid-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .grid-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .field {
+            padding: 9px 12px;
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            background: #fff;
+        }
+
+        .field:last-child,
+        .field.last-row {
+            border-bottom: none;
+        }
+
+        .field.no-right {
+            border-right: none;
+        }
+
+        .field.full {
+            grid-column: 1 / -1;
+        }
+
+        .field-label {
+            font-size: 7.5px;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--grey);
+            margin-bottom: 4px;
+        }
+
+        .field-value {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--text);
+            min-height: 16px;
+            border-bottom: 1px dotted #b0bec5;
+            padding-bottom: 2px;
+        }
+
+        .field-value.large {
+            min-height: 38px;
+        }
+
+        /* Type badge row */
+        .type-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0 6px;
+        }
+
+        .type-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--navy);
+        }
+
+        .checkbox {
+            width: 13px;
+            height: 13px;
+            border: 1.5px solid var(--navy);
+            border-radius: 2px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 9px;
+            color: var(--blue);
+        }
+
+        .checkbox.checked {
+            background: var(--navy);
+            color: #fff;
+        }
+
+        /* Duration strip */
+        .duration-strip {
+            display: flex;
+            align-items: stretch;
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 2px;
+        }
+
+        .dur-cell {
+            flex: 1;
+            padding: 9px 12px;
+            border-right: 1px solid var(--border);
+        }
+
+        .dur-cell:last-child {
+            border-right: none;
+        }
+
+        .dur-cell .field-label {
+            margin-bottom: 4px;
+        }
+
+        .dur-cell .field-value {
+            border-bottom: 1px dotted #b0bec5;
+        }
+
+        /* Signature zone */
+        .sig-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .sig-box {
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            min-height: 90px;
+            position: relative;
+            background: #fff;
+        }
+
+        .sig-box .sig-title {
+            font-size: 7.5px;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--grey);
+            margin-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+        }
+
+        .sig-box .sig-name {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .sig-box .sig-date-row {
+            position: absolute;
+            bottom: 8px;
+            left: 12px;
+            right: 12px;
+        }
+
+        .sig-box .sig-date-label {
+            font-size: 7.5px;
+            color: var(--grey);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        .sig-box .sig-date-val {
+            font-size: 10px;
+            font-weight: 600;
+            border-bottom: 1px dotted #b0bec5;
+            padding-bottom: 2px;
+            min-height: 14px;
+        }
+
+        /* Status stamp area */
+        .sig-box.stamp-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .stamp {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            border: 2.5px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8.5px;
+            font-weight: 700;
+            color: var(--grey);
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 8px;
+            line-height: 1.3;
+        }
+
+        .stamp.approved {
+            border-color: #16a34a;
+            color: #16a34a;
+            background: #f0fdf4;
+        }
+
+        .stamp.refused {
+            border-color: #dc2626;
+            color: #dc2626;
+            background: #fef2f2;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 10px 32px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid var(--border);
+            margin-top: 18px;
+        }
+
+        .footer .footer-left {
+            font-size: 8px;
+            color: var(--grey);
+            line-height: 1.6;
+        }
+
+        .footer .footer-right {
+            text-align: right;
+            font-size: 8px;
+            color: var(--grey);
+        }
+
+        .footer .footer-logo {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--navy);
+            letter-spacing: .08em;
+        }
+
+        /* Watermark */
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-family: 'EB Garamond', serif;
+            font-size: 80px;
+            font-weight: 700;
+            color: rgba(26, 94, 168, 0.04);
+            pointer-events: none;
+            white-space: nowrap;
+            letter-spacing: .12em;
+            z-index: 0;
+        }
+
+        /* ── Print ── */
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+
+            .page {
+                box-shadow: none;
+                width: 100%;
+                min-height: 100vh;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        /* ── Preview controls ── */
+        .controls {
+            width: 210mm;
+            margin: 0 auto 16px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-print {
+            background: var(--navy);
+            color: #fff;
+            border: none;
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: .04em;
+        }
+
+        .btn-print:hover {
+            background: var(--blue);
+        }
+
+        .btn-reset {
+            background: #fff;
+            color: var(--navy);
+            border: 1.5px solid var(--border);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="controls no-print">
+        <button class="btn-reset" onclick="resetForm()">↺ Réinitialiser</button>
+        <button class="btn-print" onclick="window.print()">🖨️ Imprimer / PDF</button>
+    </div>
+
+    <div class="page" id="doc">
+        <div class="stripe-top"></div>
+        <div class="watermark">ISIMS</div>
+
+        <!-- HEADER -->
+        <div class="header">
+            <div class="logo-block">
+                <img src="data:image/jpeg;base64,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"
+                    alt="ISIMS Logo" />
+            </div>
+
+            <div class="title-block">
+                <div class="ministry">République Tunisienne · Ministère de l'Enseignement Supérieur</div>
+                <h1>Demande d'Autorisation d'Absence</h1>
+                <div class="subtitle">Institut Supérieur d'Informatique et de Multimédia de Sfax</div>
+            </div>
+
+            <div class="ref-block">
+                <div class="ref-label">Référence</div>
+                <div class="ref-val" id="ref-display">ABS-______</div>
+                <div class="date-label" style="margin-top:8px">Date de dépôt</div>
+                <div class="date-val" id="date-display">__/__/____</div>
+            </div>
+        </div>
+
+        <!-- BODY -->
+        <div class="body">
+
+            <!-- SECTION 1 : Informations employé -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <span>Informations de l'agent</span>
+            </div>
+
+            <div class="grid grid-2">
+                <div class="field">
+                    <div class="field-label">Nom & Prénom</div>
+                    <div class="field-value" id="f-nom">___________________________________</div>
+                </div>
+                <div class="field no-right">
+                    <div class="field-label">CIN</div>
+                    <div class="field-value" id="f-cin">________________</div>
+                </div>
+                <div class="field last-row">
+                    <div class="field-label">Poste / Fonction</div>
+                    <div class="field-value" id="f-poste">___________________________________</div>
+                </div>
+                <div class="field no-right last-row">
+                    <div class="field-label">Département / Service</div>
+                    <div class="field-value" id="f-dept">___________________________________</div>
+                </div>
+            </div>
+
+            <!-- SECTION 2 : Type d'absence -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <span>Nature de l'absence</span>
+            </div>
+
+            <div style="border:1.5px solid var(--border);border-radius:6px;padding:11px 14px;">
+                <div class="type-row" id="type-row">
+                    <label class="type-option"><span class="checkbox" id="cb0">☐</span> Congé annuel</label>
+                    <label class="type-option"><span class="checkbox" id="cb1">☐</span> Maladie</label>
+                    <label class="type-option"><span class="checkbox" id="cb2">☐</span> Congé maternité</label>
+                    <label class="type-option"><span class="checkbox" id="cb3">☐</span> Congé paternité</label>
+                    <label class="type-option"><span class="checkbox" id="cb4">☐</span> Formation</label>
+                    <label class="type-option"><span class="checkbox" id="cb5">☐</span> Sans solde</label>
+                    <label class="type-option"><span class="checkbox" id="cb6">☐</span> Autre</label>
+                </div>
+            </div>
+
+            <!-- SECTION 3 : Période -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <span>Période d'absence</span>
+            </div>
+
+            <div class="duration-strip">
+                <div class="dur-cell">
+                    <div class="field-label">Date de début</div>
+                    <div class="field-value" id="f-debut">__ / __ / ______</div>
+                </div>
+                <div class="dur-cell">
+                    <div class="field-label">Date de fin</div>
+                    <div class="field-value" id="f-fin">__ / __ / ______</div>
+                </div>
+                <div class="dur-cell">
+                    <div class="field-label">Durée (jours)</div>
+                    <div class="field-value" id="f-duree">_______ jour(s)</div>
+                </div>
+                <div class="dur-cell" style="border-right:none">
+                    <div class="field-label">Reprise prévue</div>
+                    <div class="field-value" id="f-reprise">__ / __ / ______</div>
+                </div>
+            </div>
+
+            <!-- SECTION 4 : Motif -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <span>Motif</span>
+            </div>
+
+            <div class="grid">
+                <div class="field full last-row">
+                    <div class="field-label">Raison de la demande</div>
+                    <div class="field-value large" id="f-motif">&nbsp;</div>
+                </div>
+            </div>
+
+            <!-- SECTION 5 : Signatures -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <span>Signatures & Validation</span>
+            </div>
+
+            <div class="sig-grid">
+                <!-- Demandeur -->
+                <div class="sig-box">
+                    <div class="sig-title">Signature du demandeur</div>
+                    <div class="sig-name" id="f-sig-name">&nbsp;</div>
+                    <div style="height:40px"></div>
+                    <div class="sig-date-row">
+                        <div class="sig-date-label">Date</div>
+                        <div class="sig-date-val" id="f-sig-date">&nbsp;</div>
+                    </div>
+                </div>
+                <!-- Responsable -->
+                <div class="sig-box">
+                    <div class="sig-title">Avis du responsable hiérarchique</div>
+                    <div style="height:54px"></div>
+                    <div class="sig-date-row">
+                        <div class="sig-date-label">Cachet & Signature</div>
+                        <div class="sig-date-val">&nbsp;</div>
+                    </div>
+                </div>
+                <!-- Direction -->
+                <div class="sig-box stamp-box">
+                    <div class="sig-title" style="align-self:flex-start;width:100%">Décision de la Direction</div>
+                    <div class="stamp" id="stamp-box">En attente<br>de décision</div>
+                </div>
+            </div>
+
+            <!-- Note justificatif -->
+            <div
+                style="margin-top:14px;padding:9px 13px;background:var(--light);border-left:3px solid var(--blue);border-radius:0 5px 5px 0;font-size:8.5px;color:var(--grey);line-height:1.7">
+                <strong style="color:var(--navy);">📎 Pièces jointes requises :</strong>
+                Tout justificatif médical ou administratif doit être joint dans un délai de <strong>48 heures</strong> à
+                compter de la date de reprise.
+                Toute absence non justifiée sera considérée comme absence irrégulière conformément au règlement
+                intérieur de l'ISIMS.
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <div class="footer-left">
+                Route de Soukra km 3,5 – BP 242 Sfax 3021, Tunisie<br>
+                Tél : +216 74 862 929 · Fax : +216 74 862 930
+            </div>
+            <div class="footer-right">
+                <div class="footer-logo">iSIMS</div>
+                <div>High. Inst. of Comp. Sci. and Multimedia of Sfax</div>
+                <div style="margin-top:3px;color:#aaa">www.isims.usf.tn</div>
+            </div>
+        </div>
+
+        <div class="stripe-bottom"></div>
+    </div>
+
+    <script>
+        // ── Populate from URL params (used by printAbsence in absences.html) ──
+        function getParam(name) {
+            var url = new URLSearchParams(window.location.search);
+            return url.get(name) || '';
+        }
+
+        function fmt(d) {
+            if (!d) return '__ / __ / ______';
+            var dd = new Date(d);
+            if (isNaN(dd)) return d;
+            return dd.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        function setVal(id, val, fallback) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = val || fallback || '';
+        }
+
+        function fill(data) {
+            data = data || {};
+
+            // Header
+            setVal('ref-display', data.id || 'ABS-______');
+            setVal('date-display', fmt(data.dateDepot || new Date().toISOString()));
+
+            // Agent
+            setVal('f-nom', data.nom || '___________________________________');
+            setVal('f-cin', data.cin || '________________');
+            setVal('f-poste', data.poste || '___________________________________');
+            setVal('f-dept', data.dept || '___________________________________');
+
+            // Type checkboxes
+            var types = ['Congé annuel', 'Maladie', 'Congé maternité', 'Congé paternité', 'Formation', 'Sans solde', 'Autre'];
+            types.forEach(function (t, i) {
+                var cb = document.getElementById('cb' + i);
+                if (cb) {
+                    if (data.type && data.type.trim().toLowerCase() === t.toLowerCase()) {
+                        cb.textContent = '✓';
+                        cb.className = 'checkbox checked';
+                    } else {
+                        cb.textContent = '☐';
+                        cb.className = 'checkbox';
+                    }
+                }
+            });
+
+            // Dates
+            setVal('f-debut', fmt(data.dateDebut));
+            setVal('f-fin', fmt(data.dateFin));
+            setVal('f-duree', data.duree ? data.duree + ' jour(s)' : '_______ jour(s)');
+            // Reprise = dateFin + 1
+            if (data.dateFin) {
+                var r = new Date(data.dateFin);
+                r.setDate(r.getDate() + 1);
+                setVal('f-reprise', r.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }));
+            }
+
+            // Motif
+            setVal('f-motif', data.motif || '\u00a0');
+
+            // Signature
+            setVal('f-sig-name', data.nom || '\u00a0');
+            setVal('f-sig-date', fmt(data.dateDepot || new Date().toISOString()));
+
+            // Statut stamp
+            var stamp = document.getElementById('stamp-box');
+            if (stamp) {
+                if (data.statut === 'Approuvée') {
+                    stamp.textContent = '✓ Approuvée';
+                    stamp.className = 'stamp approved';
+                } else if (data.statut === 'Refusée') {
+                    stamp.textContent = '✗ Refusée';
+                    stamp.className = 'stamp refused';
+                } else {
+                    stamp.textContent = 'En attente\nde décision';
+                    stamp.className = 'stamp';
+                }
+            }
+        }
+
+        // ── Load from URL params if present ──
+        (function () {
+            var p = {
+                id: getParam('id'),
+                nom: getParam('nom'),
+                cin: getParam('cin'),
+                poste: getParam('poste'),
+                dept: getParam('dept'),
+                type: getParam('type'),
+                dateDebut: getParam('dateDebut'),
+                dateFin: getParam('dateFin'),
+                duree: getParam('duree'),
+                motif: getParam('motif'),
+                statut: getParam('statut'),
+                dateDepot: getParam('dateDepot')
+            };
+            var hasData = p.nom || p.id;
+            if (hasData) fill(p);
+            else {
+                // Demo / preview mode
+                fill({
+                    id: 'ABS-2024-0042',
+                    nom: 'Ben Salah Mohamed',
+                    cin: '12345678',
+                    poste: 'Maître Assistant',
+                    dept: 'Département Informatique',
+                    type: 'Congé annuel',
+                    dateDebut: '2024-07-01',
+                    dateFin: '2024-07-14',
+                    duree: '14',
+                    motif: 'Congé annuel – vacances estivales.',
+                    statut: 'En attente',
+                    dateDepot: new Date().toISOString()
+                });
+            }
+        })();
+
+        function resetForm() { fill({}); }
+
+        // ── GAS integration: window.fillAbsenceTemplate(data) ──
+        window.fillAbsenceTemplate = function (data) { fill(data); };
+    </script>
+</body>
+
+</html>

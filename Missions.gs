@@ -1,8 +1,7 @@
 /**
  * ============================================================
  *  MISSIONS MODULE
- *  CRUD + Absences + Admin validation for absences
- *  FIX: getMissions() via CSV export (same as Postes method)
+ *  CRUD   FIX: getMissions() via CSV export (same as Postes method)
  *  NEW: getEmployeesByDeptForMission() for smart assignment
  * ============================================================
  */
@@ -219,109 +218,6 @@ function assignEmployeeToMission(missionId, employeeId) {
     return { success: false, message: 'Mission introuvable' };
   } catch (e) {
     Logger.log('❌ assignEmployeeToMission error: ' + e.message);
-    return { success: false, message: e.message };
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  ABSENCES
-// ─────────────────────────────────────────────────────────────
-
-function getAbsences() {
-  try {
-    var ss = getSpreadsheet();
-    var sheet = ss.getSheetByName(CONFIG.SHEET_ABSENCES);
-    if (!sheet) return [];
-    var data = sheet.getDataRange().getValues();
-    if (data.length <= 1) return [];
-    var headers = data[0];
-    return data.slice(1).map(function(row) {
-      var obj = {};
-      headers.forEach(function(h, i) { obj[h] = row[i]; });
-      return obj;
-    });
-  } catch (e) {
-    Logger.log('❌ getAbsences error: ' + e.message);
-    return [];
-  }
-}
-
-function addAbsence(data) {
-  try {
-    var ss = getSpreadsheet();
-    var sheet = ss.getSheetByName(CONFIG.SHEET_ABSENCES);
-    if (!sheet) return { success: false, message: 'Feuille Absences introuvable.' };
-    if (!data.employeId) return { success: false, message: 'Employé obligatoire.' };
-
-    var id = generateId('ABS');
-    var d1 = new Date(data.dateDebut);
-    var d2 = new Date(data.dateFin);
-    if (isNaN(d1) || isNaN(d2)) return { success: false, message: 'Dates invalides.' };
-    if (d2 < d1) return { success: false, message: 'La date de fin doit être après la date de début.' };
-
-    var duration = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-    var employee = getEmployeeById(data.employeId);
-    var empName = employee ? (employee['Nom'] + ' ' + employee['Prénom']) : String(data.employeId);
-
-    sheet.appendRow([
-      id,
-      data.employeId || '',
-      empName,
-      data.type      || 'Congé',
-      data.dateDebut || '',
-      data.dateFin   || '',
-      duration,
-      data.motif     || '',
-      'En attente',
-      data.justificatifUrl || ''
-    ]);
-
-    var empCIN = employee ? String(employee['CIN'] || data.employeId) : data.employeId;
-    try {
-      notifyAdmin(
-        empCIN,
-        empName + ' a soumis une demande d\'absence (' + (data.type || 'Congé') + ') du ' + data.dateDebut + ' au ' + data.dateFin,
-        'absences'
-      );
-    } catch(notifErr) { Logger.log('notif warn: ' + notifErr); }
-
-    return { success: true, id: id, message: 'Absence enregistrée. En attente de validation.' };
-  } catch (e) {
-    Logger.log('❌ addAbsence error: ' + e.message);
-    return { success: false, message: e.message };
-  }
-}
-
-function updateAbsenceStatus(id, statut) {
-  try {
-    if (statut !== 'Approuvée' && statut !== 'Refusée' && statut !== 'En attente') {
-      return { success: false, message: 'Statut invalide.' };
-    }
-    var ss = getSpreadsheet();
-    var sheet = ss.getSheetByName(CONFIG.SHEET_ABSENCES);
-    if (!sheet) return { success: false, message: 'Feuille Absences introuvable.' };
-    var rows = sheet.getDataRange().getValues();
-    for (var i = 1; i < rows.length; i++) {
-      if (String(rows[i][0]) === String(id)) {
-        sheet.getRange(i + 1, 9).setValue(statut);
-
-        var empId = String(rows[i][1]);
-        var employees = getEmployees();
-        var emp = employees.find(function(e) { return String(e['ID']) === empId; });
-        if (emp && emp['CIN']) {
-          var cin = String(emp['CIN']);
-          if (statut === 'Approuvée') {
-            notifyEmployee(cin, '✅ Votre demande d\'absence a été approuvée.', 'success', 'absences');
-          } else if (statut === 'Refusée') {
-            notifyEmployee(cin, '❌ Votre demande d\'absence a été refusée. Contactez votre RH.', 'danger', 'absences');
-          }
-        }
-
-        return { success: true, message: 'Statut absence mis à jour : ' + statut };
-      }
-    }
-    return { success: false, message: 'Absence introuvable' };
-  } catch (e) {
     return { success: false, message: e.message };
   }
 }

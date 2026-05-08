@@ -477,35 +477,7 @@ function getAffectations() {
   }
 }
 
-/**
- * Analyse absences for a given period
- */
-function analyzeAbsences(periodDays) {
-  periodDays = periodDays || 90;
-  var employees = getEmployees();
-  var absences  = getAbsences();
-  var cutoff    = new Date(new Date().getTime() - periodDays * 24 * 60 * 60 * 1000);
 
-  var analysis = employees.map(function(emp) {
-    var empAbs = absences.filter(function(a) {
-      return String(a['Employé ID']) === String(emp['ID']) && new Date(a['Date Début']) >= cutoff;
-    });
-    var totalDays = empAbs.reduce(function(s, a) { return s + (Number(a['Durée (jours)']) || 0); }, 0);
-    var types = {};
-    empAbs.forEach(function(a) { var t = a['Type'] || 'Autre'; types[t] = (types[t] || 0) + 1; });
-    return {
-      id       : emp['ID'],
-      name     : emp['Nom'] + ' ' + emp['Prénom'],
-      dept     : emp['Département'],
-      count    : empAbs.length,
-      totalDays: totalDays,
-      types    : types,
-      rate     : Math.round((totalDays / periodDays) * 100)
-    };
-  });
-  analysis.sort(function(a, b) { return b.totalDays - a.totalDays; });
-  return { success: true, period: periodDays, data: analysis };
-}
 
 /**
  * Helper: parse comma/semicolon-separated skill string into array
