@@ -64,25 +64,49 @@ Pour ce projet, nous avons opté pour la méthodologie **ScrumBan**, combinant l
 *   **Acteurs :** Administrateur RH (gestion complète), Employé (consultation profil, missions, demandes d'absences).
 *   **Cas d'utilisation principal :** L'Administrateur peut générer des recommandations automatiques pour une mission spécifique. Le système analyse les compétences, la charge actuelle et l'historique d'absences pour proposer le candidat idéal.
 
-### 4. Chapitre 3 : Architecture Technique (Le cœur du projet)
-L'application repose sur l'écosystème **Google Workspace**, offrant une solution "Serverless" robuste :
-*   **Frontend :** Interfaces web dynamiques développées en HTML5, CSS3 (avec Glassmorphism) et JavaScript.
-*   **Backend :** Logic métier propulsé par **Google Apps Script (GAS)**, assurant une intégration native avec les services Google (Gmail pour notifications, Drive pour stockage).
-*   **Base de Données :** Utilisation de **Google Sheets** comme base de données relationnelle structurée (Tables : Employees, Missions, Absences, Postes).
+### 4. Chapitre 3 : Architecture Technique et Écosystème
+L'application repose sur l'écosystème **Google Workspace**, offrant une solution "Serverless" robuste, hautement disponible et sans coût d'infrastructure :
+*   **Frontend (Interface Utilisateur) :** 
+    *   Interfaces web dynamiques développées en **HTML5** et **CSS3** (utilisant le concept de Glassmorphism).
+    *   Utilisation de polices modernes (**Google Fonts : Inter, Poppins**) et d'icônes vectorielles pour une esthétique premium.
+    *   **Navigation Centralisée :** Système de menu dynamique injecté par JavaScript (`isims-scripts.html`) qui s'adapte en temps réel selon les droits de l'utilisateur (Admin vs Employé).
+*   **Backend (Logique Métier) :** 
+    *   Logic métier entièrement propulsé par **Google Apps Script (GAS)** (basé sur le moteur JavaScript V8). 
+    *   *Note technique :* Contrairement aux architectures classiques (Python/Django ou PHP), GAS permet une intégration "native" et sécurisée avec les services Google sans gestion de serveur.
+    *   Communication via `google.script.run` pour des appels asynchrones entre le client et le serveur.
+*   **Base de Données & Stockage :** 
+    *   **Google Sheets** fait office de base de données relationnelle (Tables : `Employees`, `Missions`, `Absences`, `Demandes`, `Postes`).
+    *   **Google Drive API** pour le stockage sécurisé des pièces jointes (justificatifs d'absence, templates de documents).
 
-### 5. Chapitre 4 : Le Moteur de Recommandation Intelligent
-C'est l'innovation majeure du projet. Contrairement à une gestion manuelle, notre moteur utilise une **Algorithmique de Scoring Pondéré** (Multi-Criteria Decision Making) :
-*   **Compétences (40%) :** Correspondance directe entre les besoins de la mission et le profil.
-*   **Poste & Expérience (20%) :** Adéquation hiérarchique et ancienneté.
-*   **Charge de Travail (20%) :** Analyse des missions actives pour éviter le burnout.
-*   **Taux d'Absence (15%) :** Fiabilité basée sur l'historique récent (90 jours).
-*   **Expérience/Ancienneté (5%) :** Valorisation de la fidélité.
+### 5. Chapitre 4 : Implémentation des Modules Clés
 
-### 6. Chapitre 5 : Dashboard et KPIs RH
-La plateforme intègre un tableau de bord analytique permettant de suivre en temps réel :
-*   **Top Performers :** Employés ayant le meilleur score composite (compétences/assiduité).
-*   **Taux d'absentéisme par département :** Pour identifier les zones de tension.
-*   **Distribution de la charge :** Visualisation des missions assignées par rapport aux capacités.
+#### 4.1 Le Moteur de Recommandation Intelligent
+C'est l'innovation majeure du projet. Le moteur utilise une **Algorithmique de Scoring Pondéré** (Multi-Criteria Decision Making) développée en JavaScript :
+*   **Compétences (40%) :** Correspondance sémantique entre les besoins de la mission et le profil de l'employé.
+*   **Poste & Adéquation (20%) :** Vérification de la compatibilité du poste actuel avec la mission.
+*   **Charge de Travail (20%) :** Analyse dynamique des affectations en cours pour prévenir la surcharge.
+*   **Fiabilité (15%) :** Calculé sur le taux d'absence approuvé des 90 derniers jours.
+*   **Ancienneté (5%) :** Valorisation de l'expérience au sein de l'entreprise.
+
+#### 4.2 Module de Gestion des Demandes (Templates Dynamiques)
+Ce module permet une flexibilité totale pour l'administration :
+*   **Moteur de Templates :** L'administrateur peut créer des types de demandes (ex: Matériel, Télétravail) avec des formulaires personnalisables (champs texte, dates, listes).
+*   **Workflow d'approbation :** Cycle de vie complet (En attente → Approuvée/Refusée) avec notification automatique et obligation de justifier les refus.
+
+#### 4.3 Gestion des Absences et Suivi Individuel
+*   **Vue Admin :** Interface de monitoring permettant de filtrer les absences par employé, département ou statut.
+*   **Vue Employé :** Espace restreint permettant de soumettre une demande et de suivre son avancement en temps réel.
+
+### 6. Chapitre 5 : Sécurité et Authentification
+*   **Sécurisation par Rôle :** Implémentation d'une couche d'authentification robuste (`Auth.gs`) différenciant les droits Admin et Employé.
+*   **Session Management :** Utilisation du `PropertiesService` de Google et du `localStorage` côté client pour maintenir une session sécurisée et éviter les accès non autorisés.
+*   **Protection des Données :** Filtrage systématique des données côté serveur (GAS) avant envoi au client, garantissant qu'un employé ne puisse jamais accéder aux données de ses collègues ou à l'administration.
+
+### 7. Chapitre 6 : Résultats et Évaluation (KPIs)
+Le dashboard RH permet une visualisation stratégique :
+*   **Top Performers :** Classement dynamique basé sur le score de recommandation global.
+*   **Analyse de l'Absentéisme :** Identification des tendances par département.
+*   **Optimisation des Affectations :** Réduction du temps de sélection des équipes de mission grâce aux suggestions automatiques.
 
 ---
 
@@ -98,3 +122,17 @@ La plateforme intègre un tableau de bord analytique permettant de suivre en tem
 1.  **Tests Unitaires :** Validation des fonctions de calcul de score (Recommendation.gs).
 2.  **Tests d'Intégration :** Flux complet depuis le dépôt d'un CV jusqu'à la création automatique d'une fiche employé.
 3.  **Tests de Performance :** Temps de réponse du moteur sur une base de 100+ employés (Score calculé en < 1s).
+
+---
+
+## 🏁 CONCLUSION ET PERSPECTIVES
+
+### Conclusion
+Ce projet a permis de concevoir une solution innovante et légère pour la gestion des RH. En s'appuyant sur l'écosystème **Google Workspace**, nous avons pu déployer une application full-stack sécurisée, sans coût d'hébergement, tout en intégrant des fonctionnalités avancées de recommandation basées sur les données. La centralisation des processus (absences, demandes, missions) offre un gain de productivité immédiat pour l'administrateur.
+
+### Perspectives Futures
+*   **Intégration de l'IA Générative (LLM) :** Utiliser Gemini pour générer des synthèses de performance ou des offres d'emploi basées sur les besoins d'une mission.
+*   **Application Mobile :** Déployer l'interface via AppSheet pour un accès natif sur smartphone.
+*   **Notifications Push :** Intégrer un service de notifications en temps réel pour alerter les employés dès qu'une mission leur est assignée.
+
+**"L'intelligence au service de l'humain."**
